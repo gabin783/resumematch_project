@@ -1,0 +1,393 @@
+import { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import './ResumeMatch.css';
+
+const API_BASE_URL = 'http://localhost:8080/api/resume';
+const MAX_JD_LENGTH = 5000;
+
+const steps = [
+  '이력서 업로드',
+  '채용공고 입력',
+  '분석 시작',
+];
+
+const sampleExtractedJob = {
+  targetJob: '백엔드 개발자',
+  company: 'ABC Tech',
+  keywords: ['Java', 'Spring Boot', 'JPA', 'MySQL', 'AWS', 'REST API'],
+  summary: 'AI가 공고 내용을 분석해 핵심 역량과 기술 키워드를 추출했습니다.',
+  details: [
+    'Spring Boot 기반 REST API 개발 역량이 중요합니다.',
+    'JPA와 MySQL을 활용한 데이터 모델링 경험이 요구됩니다.',
+    'AWS 환경에서 서비스 배포와 운영 경험이 있으면 유리합니다.',
+  ],
+};
+
+const ResumeMatch = () => {
+  const navigate = useNavigate();
+
+  const [resumeFile, setResumeFile] = useState(null);
+  const [parsedResumeData, setParsedResumeData] = useState(null);
+  const [isParsing, setIsParsing] = useState(false);
+  const [inputMode, setInputMode] = useState('url');
+  const [jobUrl, setJobUrl] = useState('');
+  const [targetJob, setTargetJob] = useState('');
+  const [jobDescription, setJobDescription] = useState('');
+  const [extractedJob, setExtractedJob] = useState(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isLoadingJob, setIsLoadingJob] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const isResumeCompleted = Boolean(parsedResumeData?.skills?.length);
+
+  const isJobCompleted =
+    inputMode === 'url'
+      ? Boolean(extractedJob && jobDescription.trim())
+      : targetJob.trim().length > 0 && jobDescription.trim().length > 0;
+
+  const canAnalyze =
+    isResumeCompleted &&
+    isJobCompleted &&
+    !isParsing &&
+    !isLoadingJob &&
+    !isAnalyzing;
+
+  const getStepState = (index) => {
+    if (index === 0) {
+      return isResumeCompleted ? 'completed' : 'pending';
+    }
+
+    if (index === 1) {
+      return isJobCompleted ? 'completed' : 'pending';
+    }
+
+    if (index === 2) {
+      return isResumeCompleted && isJobCompleted ? 'active' : 'pending';
+    }
+
+    return 'pending';
+  };
+
+  const getStepLineState = (index) => {
+    if (index === 0) {
+      return isResumeCompleted && isJobCompleted ? 'line-completed' : '';
+    }
+
+    if (index === 1) {
+      return isResumeCompleted && isJobCompleted ? 'line-completed' : '';
+    }
+
+    return '';
+  };
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setResumeFile(file);
+    setParsedResumeData(null);
+    setIsParsing(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/parse-resume`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setParsedResumeData(response.data);
+    } catch (error) {
+      console.error('이력서 파싱 오류:', error);
+      alert('이력서 파싱에 실패했습니다. 백엔드 서버 상태를 확인해주세요.');
+      setResumeFile(null);
+    } finally {
+      setIsParsing(false);
+      e.target.value = '';
+    }
+  };
+
+  const resetFile = () => {
+    setResumeFile(null);
+    setParsedResumeData(null);
+  };
+
+  const handleModeChange = (mode) => {
+    setInputMode(mode);
+    setIsDetailOpen(false);
+    if (mode === 'manual') {
+      setExtractedJob(null);
+    }
+  };
+
+  const handleLoadJobFromUrl = async () => {
+    if (!jobUrl.trim()) {
+      alert('채용공고 URL을 입력해주세요.');
+      return;
+    }
+
+    setIsLoadingJob(true);
+    setIsDetailOpen(false);
+
+    try {
+      // TODO: 백엔드 URL 분석 API가 준비되면 이 mock 데이터를 API 응답으로 교체합니다.
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setExtractedJob(sampleExtractedJob);
+      setTargetJob(sampleExtractedJob.targetJob);
+      setJobDescription(
+        `${sampleExtractedJob.company} ${sampleExtractedJob.targetJob}\n` +
+          `핵심 키워드: ${sampleExtractedJob.keywords.join(', ')}\n` +
+          sampleExtractedJob.details.join('\n'),
+      );
+    } catch (error) {
+      console.error('채용공고 URL 불러오기 오류:', error);
+      alert('채용공고를 불러오지 못했습니다. 직접 입력 탭을 이용해주세요.');
+    } finally {
+      setIsLoadingJob(false);
+    }
+  };
+
+  const handleAnalyzeJD = async () => {
+    if (!resumeFile || !parsedResumeData?.skills?.length) {
+      alert('먼저 이력서를 업로드해주세요.');
+      return;
+    }
+    if (!targetJob.trim()) {
+      alert('목표 직무를 입력해주세요.');
+      return;
+    }
+    if (!jobDescription.trim()) {
+      alert('채용 공고 내용을 입력해주세요.');
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    try {
+      const response = await axios.post(
+        `${API_BASE_URL}/gap-match`,
+        {
+          resumeSkills: parsedResumeData.skills,
+          jdText: jobDescription,
+          targetJob,
+        },
+        {
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+
+      navigate('/result', { state: { analysisResult: response.data } });
+    } catch (error) {
+      console.error('분석 에러 발생:', error);
+      alert('AI 분석에 실패했습니다. 백엔드 서버 상태와 콘솔 로그를 확인해주세요.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  const visibleKeywords = extractedJob?.keywords.slice(0, 3) || [];
+  const extraKeywordCount = extractedJob
+    ? Math.max(extractedJob.keywords.length - visibleKeywords.length, 0)
+    : 0;
+
+  return (
+    <main className="rm-page">
+      <section className="rm-stepper" aria-label="분석 단계">
+        {steps.map((step, index) => {
+          const state = getStepState(index);
+          const lineState = getStepLineState(index);
+
+          return (
+            <div className={`rm-step ${state} ${lineState}`} key={step}>
+              <div className={`rm-step-dot ${state}`}>
+                {index + 1}
+              </div>
+              <span className={`rm-step-label ${state}`}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </section>
+
+      <section className="rm-workspace">
+        <div className="rm-panel">
+          <div className="rm-panel-header">
+            <h2>이력서 업로드</h2>
+            <p>PDF, Word 파일을 업로드해주세요.</p>
+          </div>
+
+          <label className={isParsing ? 'rm-dropzone loading' : 'rm-dropzone'}>
+            <input
+              type="file"
+              onChange={handleFileUpload}
+              accept=".pdf,.docx"
+              disabled={isParsing}
+            />
+            <span className="rm-upload-icon" aria-hidden="true">↑</span>
+            <strong>{isParsing ? '이력서 분석 중...' : '파일 선택 또는 드래그 & 드롭'}</strong>
+            <small>PDF, DOCX 파일 · 최대 10MB</small>
+          </label>
+
+          <div className="rm-file-list">
+            <h3>업로드 파일</h3>
+            {resumeFile ? (
+              <div className="rm-file-card">
+                <div className="rm-file-icon" aria-hidden="true">📄</div>
+                <div>
+                  <strong>{resumeFile.name}</strong>
+                  <span>{resumeFile.type || '문서 파일'} · {(resumeFile.size / 1024).toFixed(0)}KB</span>
+                </div>
+                <button type="button" onClick={resetFile} aria-label="업로드 파일 삭제">
+                  ×
+                </button>
+                {parsedResumeData?.skills?.length ? (
+                  <span className="rm-file-check" aria-label="파싱 완료">✓</span>
+                ) : null}
+              </div>
+            ) : (
+              <p className="rm-empty-text">아직 업로드된 파일이 없습니다.</p>
+            )}
+          </div>
+
+          {parsedResumeData?.skills?.length ? (
+            <div className="rm-skills">
+              {parsedResumeData.skills.slice(0, 12).map((skill) => (
+                <span key={skill}>{skill}</span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rm-panel">
+          <div className="rm-panel-header">
+            <h2>채용공고 입력</h2>
+            <p>공고 URL을 입력하거나 내용을 직접 붙여넣어 주세요.</p>
+          </div>
+
+          <div className="rm-mode-tabs" role="tablist" aria-label="채용공고 입력 방식">
+            <button
+              type="button"
+              className={inputMode === 'url' ? 'active' : ''}
+              onClick={() => handleModeChange('url')}
+            >
+              URL로 불러오기
+            </button>
+            <button
+              type="button"
+              className={inputMode === 'manual' ? 'active' : ''}
+              onClick={() => handleModeChange('manual')}
+            >
+              직접 입력
+            </button>
+          </div>
+
+          {inputMode === 'url' ? (
+            <div className="rm-url-panel">
+              <label className="rm-field">
+                <span>채용공고 URL</span>
+                <input
+                  type="url"
+                  value={jobUrl}
+                  onChange={(e) => setJobUrl(e.target.value)}
+                  placeholder="https://www.jobsite.co.kr/jobs/12345"
+                  spellCheck={false}
+                />
+              </label>
+
+              <div className="rm-url-action">
+                <button type="button" onClick={handleLoadJobFromUrl} disabled={isLoadingJob}>
+                  {isLoadingJob ? '불러오는 중...' : '공고 불러오기'}
+                </button>
+              </div>
+
+              {extractedJob ? (
+                <div className={`rm-extract-summary${isDetailOpen ? ' open' : ''}`}>
+                  <strong>✓ AI 추출 완료</strong>
+                  <p>{extractedJob.targetJob} · {extractedJob.company}</p>
+                  <span>
+                    {visibleKeywords.join(' · ')}
+                    {extraKeywordCount > 0 ? ` 외 ${extraKeywordCount}개` : ''}
+                  </span>
+                  <button type="button" onClick={() => setIsDetailOpen((open) => !open)}>
+                    {isDetailOpen ? '상세 닫기' : '상세 보기'}
+                  </button>
+
+                  {isDetailOpen ? (
+                    <div className="rm-extract-detail">
+                      <h3>상세 분석 내용</h3>
+
+                      <div className="rm-keyword-block">
+                        <strong>핵심 키워드</strong>
+                        <div className="rm-keywords">
+                          {extractedJob.keywords.map((keyword) => (
+                            <span key={keyword}>{keyword}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rm-ai-note">{extractedJob.summary}</div>
+
+                      <ul>
+                        {extractedJob.details.map((detail) => (
+                          <li key={detail}>{detail}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <p className="rm-url-help">URL 분석이 어려운 경우 직접 입력 탭을 이용하세요.</p>
+            </div>
+          ) : (
+            <div className="rm-manual-panel">
+              <label className="rm-field">
+                <span className="sr-only">목표 직무</span>
+                <input
+                  type="text"
+                  value={targetJob}
+                  onChange={(e) => setTargetJob(e.target.value)}
+                  placeholder="예: 백엔드 개발자"
+                  spellCheck={false}
+                />
+              </label>
+
+              <label className="rm-field">
+                <span className="sr-only">상세 채용공고</span>
+                <textarea
+                  value={jobDescription}
+                  maxLength={MAX_JD_LENGTH}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  placeholder="주요 업무, 자격 요건, 우대 사항 등을 입력해 주세요."
+                  spellCheck={false}
+                />
+              </label>
+
+              <div className="rm-count">
+                {jobDescription.length.toLocaleString()} / {MAX_JD_LENGTH.toLocaleString()}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
+
+      <div className="rm-action-bar">
+        <button
+          type="button"
+          className="rm-analyze-button"
+          disabled={!canAnalyze}
+          onClick={handleAnalyzeJD}
+        >
+          {isAnalyzing ? 'AI 스킬 갭 분석 중...' : 'AI 스킬 갭 분석 시작 →'}
+        </button>
+      </div>
+
+      <p className="rm-helper">
+        업로드된 정보는 분석에만 사용되며 서버 저장 정책에 따라 처리됩니다.
+      </p>
+    </main>
+  );
+};
+
+export default ResumeMatch;

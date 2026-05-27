@@ -1,0 +1,260 @@
+/* JobPostingList.css - 전체 내용 복사해서 덮어씌우세요! */
+
+/* 컨테이너 전역 설정 */
+.job-list-container {
+    padding: 30px;
+    max-width: 1200px;
+    margin: 0 auto; /* 중앙 배치 */
+    font-family: 'Pretendard', sans-serif;
+    background: #fdfdfd;
+    text-align: left; /* 내부 글자 왼쪽 정렬로 리셋 (테일윈드 충돌 방지) */
+}
+
+.title {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #111;
+    margin-bottom: 30px;
+    text-align: center; /* 제목만 중앙 */
+}
+
+/* --- 카드를 바둑판처럼 배치하는 핵심 그리드 설정 --- */
+.job-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 너비 최소 300px로 펴기 */
+    gap: 30px; /* 카드 간 간격 설정 ⭐️ */
+}
+
+/* 개별 카드 디자인 - 뭉친 부분을 폅니다 */
+.job-card {
+    background: #ffffff;
+    border: 1px solid #eaeaea;
+    border-radius: 20px; /* 둥근 모서리 */
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.job-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.company-name {
+    font-size: 1rem;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.bookmark-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.bookmark-btn:hover {
+    transform: scale(1.2);
+}
+
+.job-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #111;
+    margin-bottom: 30px; /* 하단 버튼과 간격 벌리기 */
+    line-height: 1.4;
+    word-break: keep-all;
+}
+
+/* 카드 하단 버튼 배치 */
+.card-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto; /* 하단 고정 */
+}
+
+.apply-btn {
+    flex: 1;
+    display: block;
+    background-color: #007bff;
+    color: #ffffff;
+    text-align: center;
+    padding: 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: background-color 0.2s;
+}
+
+.apply-btn:hover {
+    background-color: #0056b3;
+}
+
+.match-btn {
+    flex: 1.5;
+    background-color: #f3f4f6;
+    color: #4f46e5;
+    border: 1px solid #c7d2fe;
+    font-weight: 800;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.match-btn:hover {
+    background-color: #e0e7ff;
+}
+
+/* --- 모달창 디자인 (어두운 오버레이) --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* 모달창 알맹이 */
+.modal-content {
+    background: white;
+    width: 90%;
+    max-width: 500px;
+    border-radius: 20px;
+    padding: 30px;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.close-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 20px;
+    color: #111827;
+    text-align: center;
+}
+
+/* 로딩 스피너 애니메이션 */
+.loading-container {
+    text-align: center;
+    padding: 40px 0;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #4f46e5;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 15px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 매칭 결과 UI */
+.match-rate-box {
+    background: linear-gradient(135deg, #4f46e5, #818cf8);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.rate-label {
+    display: block;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.rate-value {
+    font-size: 2.5rem;
+    font-weight: 900;
+}
+
+.skills-box {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.skill-group h4 {
+    margin: 0 0 10px 0;
+    font-size: 1rem;
+    color: #374151;
+}
+
+.skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.tag.matched { background: #dcfce7; color: #166534; }
+.tag.missing { background: #fee2e2; color: #991b1b; }
+.tag.none { background: #f3f4f6; color: #6b7280; font-weight: normal; }
+
+.ai-feedback-box {
+    background: #f8fafc;
+    padding: 15px;
+    border-left: 4px solid #4f46e5;
+    border-radius: 8px;
+}
+
+.ai-feedback-box h4 {
+    margin: 0 0 8px 0;
+    color: #1e293b;
+}
+
+.ai-feedback-box p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #475569;
+    line-height: 1.5;
+}

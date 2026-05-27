@@ -1,0 +1,139 @@
+/* MyPage.css */
+
+.mypage-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: sans-serif;
+}
+
+.mypage-title {
+    border-bottom: 2px solid #333;
+    padding-bottom: 10px;
+    font-size: 24px; /* ✨ 이 줄을 추가해서 글자 크기를 확 줄이세요! */
+    margin-top: 10px; /* 💡 덤으로 위쪽 여백도 조금 줄이고 싶다면 이 줄도 추가해 보세요 */
+}
+
+/* 프로필 영역 */
+.profile-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.profile-name {
+    margin: 0 0 10px 0;
+    color: #0056b3;
+}
+
+.profile-info {
+    margin: 5px 0;
+}
+
+/* 공통 섹션 제목 */
+.section-title {
+    color: #555;
+}
+
+.empty-message {
+    color: #666;
+    text-align: center;
+    padding: 20px;
+    background-color: #fafafa;
+    border-radius: 8px;
+}
+
+.empty-message.large-padding {
+    padding: 40px 0;
+}
+
+/* 이력서 기록 카드 */
+.resume-list-container {
+    margin-bottom: 50px;
+}
+
+.resume-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.resume-card-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.delete-btn {
+    color: #ff4d4f;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.resume-date {
+    font-size: 0.8em;
+    color: #888;
+}
+
+/* AI 분석 기록 카드 */
+.analysis-card {
+    border: 1px solid #d9d9d9;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.analysis-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.target-job-title {
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.analysis-date {
+    margin: 5px 0 0 0;
+    font-size: 0.85em;
+    color: #999;
+}
+
+.report-btn {
+    padding: 6px 12px; /* ✨ 위아래 여백을 8px->6px, 좌우 여백을 16px->12px로 줄였습니다 */
+    background-color: #448aff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85em; /* ✨ 폰트 사이즈도 0.9em에서 살짝 줄였습니다 */
+    font-weight: bold;
+    transition: all 0.2s ease; /* (선택) 마우스 올릴 때 부드러운 효과 */
+}
+
+/* (선택) 마우스 올렸을 때 색상 살짝 진해지게 하기 */
+.report-btn:hover {
+    background-color: #2962ff;
+}
+
+/* 스킬 태그 렌더링 */
+.skill-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.missing-skill-tag {
+    background-color: #fff1f0;
+    color: #cf1322;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    border: 1px solid #ffa39e;
+}

@@ -1,0 +1,640 @@
+.result-page {
+  min-height: calc(100svh - 70px);
+  padding: 20px 36px 22px;
+  background: #f7f8fd;
+  color: #171b26;
+  box-sizing: border-box;
+}
+
+.result-hero {
+  width: min(1120px, 100%);
+  margin: 0 auto 16px;
+  text-align: center;
+}
+
+.result-hero h1 {
+  margin: 0 0 6px;
+  color: #171b26;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.result-hero p {
+  margin: 0;
+  color: #7d8798;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.result-card {
+  min-width: 0;
+  height: clamp(246px, 29svh, 280px);
+  min-height: 0;
+  padding: 18px;
+  border: 1px solid #d7ddec;
+  border-radius: 14px;
+  background: #fff;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.04);
+}
+
+.result-card h2 {
+  margin: 0 0 12px;
+  color: #1c2230;
+  font-size: 18px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.score-card h2 {
+  width: 100%;
+  align-self: flex-start;
+}
+
+.score-ring {
+  width: 138px;
+  height: 138px;
+  margin: 10px auto 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.score-ring-inner {
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.score-ring-inner strong {
+  color: #4f67ee;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.score-ring-inner span {
+  margin-top: 5px;
+  color: #7d8798;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.summary-card {
+  display: block;
+  overflow-y: auto;
+  padding-right: 14px;
+}
+
+.summary-box {
+  padding: 14px;
+  border: 1px solid #dce3f8;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.summary-box > span {
+  display: block;
+  margin-bottom: 8px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+}
+
+.summary-box > strong {
+  display: block;
+  margin-bottom: 10px;
+  color: #111827;
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 900;
+  text-align: left;
+}
+
+.summary-box > p {
+  max-height: none;
+  margin: 0;
+  overflow: visible;
+  color: #343b4a;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+.summary-tags {
+  margin-top: 10px;
+  overflow: visible;
+  padding-right: 0;
+}
+
+.result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.result-tags span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid #d6def8;
+  border-radius: 9px;
+  background: #f3f6ff;
+  color: #4f67ee;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.jd-card {
+  display: block;
+  overflow-y: auto;
+  padding-right: 14px;
+}
+
+.jd-group {
+  padding: 0 0 9px;
+  border-bottom: 1px solid #dfe4f0;
+}
+
+.jd-group + .jd-group {
+  padding-top: 9px;
+}
+
+.jd-group:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.jd-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.jd-title strong {
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.jd-group.good .jd-title {
+  color: #39ad72;
+}
+
+.jd-group.good .result-tags span {
+  border-color: #cdeedd;
+  background: #effbf5;
+  color: #39ad72;
+}
+
+.jd-group.partial .jd-title {
+  color: #4f67ee;
+}
+
+.jd-group.need .jd-title {
+  color: #f07a10;
+}
+
+.jd-group.need .result-tags span {
+  border-color: #ffd8b8;
+  background: #fff5ea;
+  color: #e96700;
+}
+
+.skill-card {
+  height: clamp(246px, 29svh, 280px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.card-title-row h2 {
+  margin: 0;
+}
+
+.card-title-row button,
+.roadmap-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  color: #4f67ee;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.progress-list {
+  display: grid;
+  gap: 9px;
+  max-height: calc(100% - 38px);
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.progress-item > div:first-child {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 5px;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.progress-item strong {
+  color: #4f67ee;
+  font-size: 14px;
+}
+
+.progress-item.red strong {
+  color: #ef4444;
+}
+
+.progress-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e7eb;
+}
+
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.progress-item.blue .progress-track span {
+  background: #4f67ee;
+}
+
+.progress-item.red .progress-track {
+  background: #fde2e2;
+}
+
+.progress-item.red .progress-track span {
+  background: #ef4444;
+}
+
+.roadmap-card {
+  height: clamp(246px, 29svh, 280px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.roadmap-list {
+  display: grid;
+  gap: 8px;
+  max-height: calc(100% - 38px);
+  margin-bottom: 0;
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.roadmap-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: #fff2df;
+}
+
+.roadmap-item span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 999px;
+  background: #f58214;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.roadmap-item strong {
+  color: #3c4250;
+  font-size: 14px;
+  line-height: 1.35;
+  font-weight: 800;
+  text-align: left;
+}
+
+.roadmap-link {
+  justify-content: center;
+  width: 100%;
+}
+
+.result-cta {
+  width: min(1120px, 100%);
+  margin: 16px auto 0;
+  text-align: center;
+}
+
+.result-cta button {
+  width: 100%;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 14px;
+  background: #4f67ee;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 16px 36px rgba(79, 103, 238, 0.22);
+}
+
+.result-cta button:hover {
+  background: #425add;
+}
+
+.result-cta p {
+  margin: 8px 0 0;
+  color: #8a93a4;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.result-empty {
+  min-height: calc(100svh - 70px);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 18px;
+  background: #f7f8fd;
+}
+
+.result-empty h2 {
+  margin: 0;
+  color: #2d3442;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.result-empty button {
+  height: 44px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 10px;
+  background: #4f67ee;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.skill-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  background: rgba(15, 23, 42, 0.48);
+  box-sizing: border-box;
+}
+
+.skill-modal {
+  width: min(760px, 100%);
+  max-height: min(720px, calc(100svh - 56px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #d7ddec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+}
+
+.skill-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #e3e8f5;
+  background: #f8faff;
+}
+
+.skill-modal-header h2 {
+  margin: 0 0 8px;
+  color: #111827;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.skill-modal-header p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.skill-modal-header button {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid #d7ddec;
+  border-radius: 10px;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.skill-modal-header button:hover {
+  color: #111827;
+  border-color: #b9c4dc;
+}
+
+.skill-modal-list {
+  display: grid;
+  gap: 14px;
+  padding: 18px 24px 24px;
+  overflow-y: auto;
+}
+
+.skill-detail-card {
+  padding: 18px;
+  border: 1px solid #dce3f8;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.skill-detail-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.skill-detail-top h3 {
+  margin: 0;
+  color: #111827;
+  font-size: 19px;
+  font-weight: 900;
+}
+
+.skill-detail-top span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.skill-detail-top span.primary {
+  background: #eef3ff;
+  color: #4f67ee;
+}
+
+.skill-detail-top span.danger {
+  background: #fff1f1;
+  color: #ef4444;
+}
+
+.skill-detail-card dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.skill-detail-card dl div {
+  padding: 12px;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.skill-detail-card dt {
+  margin-bottom: 6px;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.skill-detail-card dd {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 600;
+}
+
+@media (max-width: 980px) {
+  .result-page {
+    padding: 34px 22px 48px;
+  }
+
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .result-card,
+  .skill-card,
+  .roadmap-card {
+    min-height: auto;
+  }
+
+  .score-ring {
+    width: 184px;
+    height: 184px;
+  }
+
+  .score-ring-inner {
+    width: 112px;
+    height: 112px;
+  }
+}
+
+@media (max-width: 640px) {
+  .result-page {
+    padding: 28px 16px 42px;
+  }
+
+  .result-hero h1 {
+    font-size: 28px;
+  }
+
+  .result-hero p,
+  .result-cta p {
+    font-size: 15px;
+  }
+
+  .result-card {
+    padding: 20px;
+  }
+
+  .result-cta button {
+    height: 68px;
+    font-size: 20px;
+  }
+
+  .skill-modal-backdrop {
+    padding: 16px;
+  }
+
+  .skill-modal-header {
+    padding: 18px;
+  }
+
+  .skill-modal-header h2 {
+    font-size: 21px;
+  }
+
+  .skill-modal-list {
+    padding: 16px 18px 18px;
+  }
+
+  .skill-detail-top {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
