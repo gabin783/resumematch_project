@@ -605,8 +605,7 @@
   font-weight: 700;
 }
 
-.roadmap-loading,
-.roadmap-empty {
+.roadmap-loading {
   display: grid;
   place-items: center;
   gap: 12px;
@@ -626,26 +625,102 @@
 
 .roadmap-empty {
   min-height: calc(100svh - 70px);
+  display: grid;
+  place-items: center;
+  padding: 36px 20px;
   background: #f7f8fd;
+  box-sizing: border-box;
+}
+
+.roadmap-empty-card {
+  width: min(680px, 100%);
+  display: grid;
+  justify-items: center;
+  padding: 54px 48px;
+  border: 1px solid #d7ddec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.08);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.roadmap-empty-visual {
+  width: 136px;
+  height: 136px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 26px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
 }
 
 .roadmap-empty h2 {
-  margin: 0;
-  color: #606a7d;
-  font-size: 24px;
+  margin: 0 0 14px;
+  color: #2d3442;
+  font-size: 28px;
+  line-height: 1.25;
   font-weight: 900;
 }
 
-.roadmap-empty button {
-  height: 44px;
+.roadmap-empty p {
+  max-width: 530px;
+  margin: 0;
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+.roadmap-empty-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.roadmap-empty-badges span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.roadmap-empty-actions {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.roadmap-empty-actions button {
+  min-height: 52px;
   padding: 0 22px;
-  border: 0;
   border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.roadmap-empty-actions .primary {
+  border: 0;
   background: #4f67ee;
   color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(79, 103, 238, 0.22);
+}
+
+.roadmap-empty-actions .secondary {
+  border: 1px solid #9baaff;
+  background: #fff;
+  color: #4f67ee;
 }
 
 .roadmap-modal-backdrop {
@@ -875,6 +950,24 @@
 @media (max-width: 640px) {
   .roadmap-page {
     padding: 24px 16px 40px;
+  }
+
+  .roadmap-empty-card {
+    padding: 38px 20px;
+  }
+
+  .roadmap-empty-visual {
+    width: 112px;
+    height: 112px;
+    margin-bottom: 22px;
+  }
+
+  .roadmap-empty h2 {
+    font-size: 24px;
+  }
+
+  .roadmap-empty p {
+    font-size: 15px;
   }
 
   .curriculum-box,

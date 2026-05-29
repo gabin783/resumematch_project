@@ -400,28 +400,100 @@
   min-height: calc(100svh - 70px);
   display: grid;
   place-items: center;
-  align-content: center;
-  gap: 18px;
+  padding: 36px 20px;
   background: #f7f8fd;
+  box-sizing: border-box;
+}
+
+.result-empty-card {
+  width: min(660px, 100%);
+  display: grid;
+  justify-items: center;
+  padding: 48px 48px;
+  border: 1px solid #d7ddec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.08);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.result-empty-visual {
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 24px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
 }
 
 .result-empty h2 {
-  margin: 0;
+  margin: 0 0 14px;
   color: #2d3442;
-  font-size: 24px;
+  font-size: 28px;
+  line-height: 1.25;
   font-weight: 900;
 }
 
-.result-empty button {
-  height: 44px;
+.result-empty p {
+  max-width: 540px;
+  margin: 0;
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+.result-empty-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.result-empty-badges span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.result-empty-actions {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.result-empty-actions button {
+  min-height: 52px;
   padding: 0 22px;
-  border: 0;
   border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.result-empty-actions .primary {
+  border: 0;
   background: #4f67ee;
   color: #fff;
-  font-size: 15px;
-  font-weight: 800;
-  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(79, 103, 238, 0.22);
+}
+
+.result-empty-actions .secondary {
+  border: 1px solid #9baaff;
+  background: #fff;
+  color: #4f67ee;
 }
 
 .skill-modal-backdrop {
@@ -610,6 +682,24 @@
 
   .result-card {
     padding: 20px;
+  }
+
+  .result-empty-card {
+    padding: 36px 20px;
+  }
+
+  .result-empty-visual {
+    width: 112px;
+    height: 112px;
+    margin-bottom: 22px;
+  }
+
+  .result-empty h2 {
+    font-size: 24px;
+  }
+
+  .result-empty p {
+    font-size: 15px;
   }
 
   .result-cta button {

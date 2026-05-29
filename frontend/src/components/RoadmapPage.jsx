@@ -5,6 +5,7 @@ import {
   Check,
   Clock,
   ExternalLink,
+  Map,
   Play,
   X,
 } from 'lucide-react';
@@ -312,10 +313,27 @@ const RoadmapPage = () => {
   if (!isLoading && courses.length === 0 && skillKeywords.length === 0 && !roadmapData) {
     return (
       <main className="roadmap-empty">
-        <h2>표시할 로드맵 데이터가 없습니다.</h2>
-        <button type="button" onClick={() => navigate('/')}>
-          메인으로 돌아가기
-        </button>
+        <section className="roadmap-empty-card">
+          <div className="roadmap-empty-visual" aria-hidden="true">
+            <Map size={86} />
+          </div>
+          <h2>아직 학습 로드맵이 없습니다</h2>
+          <p>스킬 갭 분석 결과를 바탕으로 부족한 역량에 맞춘 주차별 학습 계획을 생성할 수 있습니다.</p>
+          <div className="roadmap-empty-badges" aria-label="로드맵에서 확인할 수 있는 항목">
+            <span>주차별 로드맵</span>
+            <span>이번 주 할 일</span>
+            <span>추천 강의</span>
+            <span>자가 점검</span>
+          </div>
+          <div className="roadmap-empty-actions">
+            <button type="button" className="primary" onClick={() => navigate('/match')}>
+              이력서 매칭 시작하기
+            </button>
+            <button type="button" className="secondary" onClick={() => navigate('/')}>
+              메인으로 돌아가기
+            </button>
+          </div>
+        </section>
       </main>
     );
   }

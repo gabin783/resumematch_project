@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   ChevronRight,
   CircleEllipsis,
+  FileSearch,
   Map,
   X,
 } from 'lucide-react';
@@ -143,10 +144,31 @@ const ResultPage = () => {
   if (!report) {
     return (
       <main className="result-empty">
-        <h2>분석 데이터가 없습니다.</h2>
-        <button type="button" onClick={() => navigate('/')}>
-          메인으로 돌아가기
-        </button>
+        <section className="result-empty-card">
+          <div className="result-empty-visual" aria-hidden="true">
+            <FileSearch size={88} />
+          </div>
+          <h2>아직 분석 결과가 없습니다</h2>
+          <p>
+            이력서와 채용공고를 먼저 분석하면
+            <br />
+            매칭 점수와 부족한 역량을 확인할 수 있습니다.
+          </p>
+          <div className="result-empty-badges" aria-label="분석 후 확인 가능한 항목">
+            <span>매칭 점수</span>
+            <span>보유 스킬</span>
+            <span>부족 스킬</span>
+            <span>추천 학습 방향</span>
+          </div>
+          <div className="result-empty-actions">
+            <button type="button" className="primary" onClick={() => navigate('/match')}>
+              이력서 매칭 시작하기
+            </button>
+            <button type="button" className="secondary" onClick={() => navigate('/')}>
+              메인으로 돌아가기
+            </button>
+          </div>
+        </section>
       </main>
     );
   }
