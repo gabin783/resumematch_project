@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
-  BookOpen,
   Check,
   Clock,
   ExternalLink,
@@ -127,6 +126,35 @@ const buildWeekTasks = (week) => [
   },
 ];
 
+const initialSelfCheckItems = [
+  {
+    id: 'jpa-entity-table',
+    label: 'JPA 엔티티와 테이블의 관계를 설명할 수 있다.',
+  },
+  {
+    id: 'jpa-relation-design',
+    label: '일대다/다대일 연관관계를 엔티티로 설계할 수 있다.',
+  },
+  {
+    id: 'mysql-entity-class',
+    label: 'MySQL 테이블 구조를 기반으로 엔티티 클래스를 작성할 수 있다.',
+  },
+  {
+    id: 'rest-api-database',
+    label: 'REST API에서 DB 데이터를 조회하고 저장할 수 있다.',
+  },
+  {
+    id: 'resume-project-sentence',
+    label: '학습 내용을 이력서 프로젝트 경험 문장으로 정리할 수 있다.',
+  },
+];
+
+const createSelfCheckItems = () =>
+  initialSelfCheckItems.map((item) => ({
+    ...item,
+    checked: false,
+  }));
+
 const createInitialTaskState = (weeks) =>
   weeks.reduce((acc, week) => {
     buildWeekTasks(week).forEach((task, taskIndex) => {
@@ -147,8 +175,7 @@ const RoadmapPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { missingSkills, roadmapData, nickname } = location.state || {};
-  const userName = nickname || '지원자';
+  const { missingSkills, roadmapData } = location.state || {};
   const skillKeywords = useMemo(() => toArray(missingSkills), [missingSkills]);
 
   const [courses, setCourses] = useState([]);
@@ -156,6 +183,9 @@ const RoadmapPage = () => {
   const [detailModal, setDetailModal] = useState(null);
   const [checkedTasks, setCheckedTasks] = useState({});
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [selfCheckItems, setSelfCheckItems] = useState(createSelfCheckItems);
+  const [isSelfCheckModalOpen, setIsSelfCheckModalOpen] = useState(false);
+  const [savedSelfCheckItems, setSavedSelfCheckItems] = useState(createSelfCheckItems);
 
   useEffect(() => {
     if (roadmapData) {
@@ -221,9 +251,13 @@ const RoadmapPage = () => {
       tone: isChecked ? 'done' : 'todo',
     };
   });
-  const allTasks = weeks.flatMap((week) => buildWeekTasks(week));
-  const completedTaskCount = allTasks.filter((task) => checkedTasks[task.id]).length;
-  const progressPercent = allTasks.length > 0 ? Math.round((completedTaskCount / allTasks.length) * 100) : 0;
+  const completedSelfCheckCount = savedSelfCheckItems.filter((item) => item.checked).length;
+  const draftSelfCheckCount = selfCheckItems.filter((item) => item.checked).length;
+  const selfCheckTotalCount = savedSelfCheckItems.length;
+  const selfCheckMessage =
+    draftSelfCheckCount >= 4
+      ? '이번 주 학습 완료 기준을 충족했습니다.'
+      : '아직 보완할 항목이 남아 있습니다.';
 
   useEffect(() => {
     if (weeks.length === 0 || Object.keys(checkedTasks).length > 0) return;
@@ -242,6 +276,26 @@ const RoadmapPage = () => {
       ...prev,
       [taskId]: !prev[taskId],
     }));
+  };
+
+  const openSelfCheckModal = () => {
+    setSelfCheckItems(savedSelfCheckItems);
+    setIsSelfCheckModalOpen(true);
+  };
+
+  const handleSelfCheckToggle = (itemId) => {
+    setSelfCheckItems((prev) =>
+      prev.map((item) =>
+        item.id === itemId
+          ? { ...item, checked: !item.checked }
+          : item
+      )
+    );
+  };
+
+  const handleSelfCheckSave = () => {
+    setSavedSelfCheckItems(selfCheckItems);
+    setIsSelfCheckModalOpen(false);
   };
 
   useEffect(() => {
@@ -271,7 +325,6 @@ const RoadmapPage = () => {
       <section className="week-roadmap" aria-label="주차별 로드맵">
         <div className="week-roadmap-header">
           <h2>주차별 로드맵</h2>
-          <span>전체 진행률 {progressPercent}%</span>
         </div>
         <div className="week-timeline">
           {weeks.map((week) => {
@@ -368,18 +421,25 @@ const RoadmapPage = () => {
 
           <section className="roadmap-resource-grid">
             <article className="roadmap-card curriculum-card">
-              <h2>추천 커리큘럼</h2>
+              <h2>완료 기준</h2>
               <div className="curriculum-box">
                 <div className="curriculum-icon">
-                  <BookOpen size={24} />
+                  <Check size={24} />
                 </div>
-                <div>
-                  <strong>{userName} 님을 위한 {selectedWeekData.title} 커리큘럼</strong>
-                  <p>부족 역량과 현재 주차 목표에 맞춰 바로 따라갈 수 있는 학습 순서입니다.</p>
-                  <small>총 {displayCourses.length}강 · {selectedWeekData.time} 기준</small>
+                <div className="completion-content">
+                  <strong>이번 주 학습 완료 기준</strong>
+                  <p>이번 주 학습을 마치면 아래 내용을 설명하거나 구현할 수 있어야 합니다.</p>
+                  <ul className="completion-list">
+                    <li>JPA 엔티티 관계 이해</li>
+                    <li>MySQL 테이블 구조 설계</li>
+                    <li>REST API와 DB 연동 흐름 설명</li>
+                  </ul>
                 </div>
-                <button type="button">자세히 보기</button>
+                <button type="button" onClick={openSelfCheckModal}>자가 점검하기</button>
               </div>
+              <p className="self-check-summary">
+                자가 점검 {completedSelfCheckCount} / {selfCheckTotalCount} 완료
+              </p>
             </article>
 
             <article className="roadmap-card lecture-card">
@@ -408,6 +468,54 @@ const RoadmapPage = () => {
           </section>
         </>
       )}
+
+      {isSelfCheckModalOpen ? (
+        <div className="roadmap-modal-backdrop" role="presentation" onClick={() => setIsSelfCheckModalOpen(false)}>
+          <section
+            className="roadmap-modal self-check-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="self-check-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="roadmap-modal-header">
+              <div>
+                <h2 id="self-check-modal-title">이번 주 학습 자가 점검</h2>
+                <p>학습 완료 기준을 스스로 확인하는 항목입니다.</p>
+              </div>
+              <button type="button" onClick={() => setIsSelfCheckModalOpen(false)} aria-label="자가 점검 닫기">
+                <X size={22} />
+              </button>
+            </div>
+            <div className="roadmap-modal-body">
+              <div className="self-check-list">
+                {selfCheckItems.map((item) => (
+                  <label className="self-check-item" key={item.id}>
+                    <input
+                      type="checkbox"
+                      checked={item.checked}
+                      onChange={() => handleSelfCheckToggle(item.id)}
+                    />
+                    <span>{item.label}</span>
+                  </label>
+                ))}
+              </div>
+              <div className={`self-check-status ${draftSelfCheckCount >= 4 ? 'complete' : 'incomplete'}`}>
+                <strong>{draftSelfCheckCount} / {selfCheckItems.length} 완료</strong>
+                <p>{selfCheckMessage}</p>
+              </div>
+            </div>
+            <div className="self-check-actions">
+              <button type="button" className="self-check-secondary" onClick={() => setIsSelfCheckModalOpen(false)}>
+                닫기
+              </button>
+              <button type="button" className="self-check-primary" onClick={handleSelfCheckSave}>
+                저장하기
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {detailModal ? (
         <div className="roadmap-modal-backdrop" role="presentation" onClick={() => setDetailModal(null)}>

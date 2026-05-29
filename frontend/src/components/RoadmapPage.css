@@ -26,10 +26,9 @@
 
 .week-roadmap-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  justify-content: center;
   margin: 0 0 7px;
+  text-align: center;
 }
 
 .week-roadmap h2 {
@@ -41,12 +40,6 @@
 
 .week-roadmap-header h2 {
   margin: 0;
-}
-
-.week-roadmap-header span {
-  color: #4f67ee;
-  font-size: 12px;
-  font-weight: 900;
 }
 
 .week-timeline {
@@ -438,12 +431,12 @@
 }
 
 .curriculum-box {
-  min-height: 116px;
+  min-height: 132px;
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 14px;
-  padding: 14px;
+  padding: 16px;
   border-radius: 12px;
   background: #f4f7ff;
 }
@@ -456,6 +449,10 @@
   border-radius: 12px;
   background: #e3eaff;
   color: #4f67ee;
+}
+
+.completion-content {
+  min-width: 0;
 }
 
 .curriculum-box strong {
@@ -480,6 +477,52 @@
   font-weight: 700;
 }
 
+.completion-list {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.completion-list li {
+  position: relative;
+  min-height: 20px;
+  display: flex;
+  align-items: center;
+  padding-left: 26px;
+  color: #253044;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.completion-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #4f67ee;
+  border-radius: 999px;
+  background: #fff;
+  box-sizing: border-box;
+  transform: translateY(-50%);
+}
+
+.completion-list li::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 50%;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid #4f67ee;
+  border-bottom: 2px solid #4f67ee;
+  transform: translateY(-65%) rotate(-45deg);
+}
+
 .curriculum-box button,
 .lecture-item a {
   min-height: 34px;
@@ -496,6 +539,25 @@
   font-weight: 900;
   text-decoration: none;
   cursor: pointer;
+}
+
+.curriculum-box button {
+  align-self: end;
+  border: 1px solid #8ea0ff;
+  background: #fff;
+  color: #4f67ee;
+}
+
+.curriculum-box button:hover {
+  background: #eef3ff;
+}
+
+.self-check-summary {
+  margin: 10px 0 0;
+  color: #4f67ee;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
 }
 
 .lecture-list {
@@ -655,6 +717,97 @@
   overflow-y: auto;
 }
 
+.self-check-modal {
+  max-height: min(620px, calc(100svh - 48px));
+}
+
+.self-check-list {
+  display: grid;
+  gap: 10px;
+}
+
+.self-check-item {
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid #dce3f8;
+  border-radius: 12px;
+  background: #f8faff;
+  color: #253044;
+  font-size: 14px;
+  line-height: 1.45;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.self-check-item input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: #4f67ee;
+  cursor: pointer;
+}
+
+.self-check-status {
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.self-check-status.complete {
+  background: #dcf7ed;
+  color: #15803d;
+}
+
+.self-check-status strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.self-check-status p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
+}
+
+.self-check-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px 22px;
+  border-top: 1px solid #e3e8f5;
+  background: #fff;
+}
+
+.self-check-actions button {
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.self-check-secondary {
+  border: 1px solid #d7ddec;
+  background: #fff;
+  color: #4f67ee;
+}
+
+.self-check-primary {
+  border: 0;
+  background: #4f67ee;
+  color: #fff;
+}
+
 .roadmap-detail-block {
   padding: 16px;
   border: 1px solid #dce3f8;
@@ -731,6 +884,15 @@
 
   .curriculum-box button,
   .lecture-item a {
+    width: 100%;
+  }
+
+  .self-check-actions {
+    flex-direction: column-reverse;
+    padding: 14px 16px 18px;
+  }
+
+  .self-check-actions button {
     width: 100%;
   }
 }
