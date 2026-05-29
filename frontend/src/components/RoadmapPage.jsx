@@ -318,7 +318,11 @@ const RoadmapPage = () => {
             <Map size={86} />
           </div>
           <h2>아직 학습 로드맵이 없습니다</h2>
-          <p>스킬 갭 분석 결과를 바탕으로 부족한 역량에 맞춘 주차별 학습 계획을 생성할 수 있습니다.</p>
+          <p>
+            스킬 갭 분석 결과를 바탕으로
+            <br />
+            부족한 역량에 맞춘 주차별 학습 계획을 생성할 수 있습니다.
+          </p>
           <div className="roadmap-empty-badges" aria-label="로드맵에서 확인할 수 있는 항목">
             <span>주차별 로드맵</span>
             <span>이번 주 할 일</span>

@@ -406,10 +406,10 @@
 }
 
 .result-empty-card {
-  width: min(660px, 100%);
+  width: min(680px, 100%);
   display: grid;
   justify-items: center;
-  padding: 48px 48px;
+  padding: 54px 48px;
   border: 1px solid #d7ddec;
   border-radius: 16px;
   background: #fff;
@@ -419,11 +419,11 @@
 }
 
 .result-empty-visual {
-  width: 128px;
-  height: 128px;
+  width: 136px;
+  height: 136px;
   display: grid;
   place-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 26px;
   border-radius: 999px;
   background: #eef3ff;
   color: #4f67ee;
@@ -439,6 +439,7 @@
 
 .result-empty p {
   max-width: 540px;
+  min-height: 53px;
   margin: 0;
   color: #4b5563;
   font-size: 16px;
@@ -451,10 +452,12 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin-top: 22px;
+  min-height: 30px;
+  margin-top: 24px;
 }
 
 .result-empty-badges span {
+  flex: 0 1 auto;
   min-height: 30px;
   display: inline-flex;
   align-items: center;
@@ -470,7 +473,7 @@
   width: min(340px, 100%);
   display: grid;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 34px;
 }
 
 .result-empty-actions button {
@@ -685,7 +688,7 @@
   }
 
   .result-empty-card {
-    padding: 36px 20px;
+    padding: 38px 20px;
   }
 
   .result-empty-visual {
