@@ -5,14 +5,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumematch.entity.JobPosting;
 import com.resumematch.repository.JobPostingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 @Service
 public class WantedJobService {
+    private static final String SOURCE_WANTED = "WANTED";
 
-    // ✨ DB와 연결해주는 Repository 주입!
     @Autowired
     private JobPostingRepository jobPostingRepository;
 
@@ -39,23 +42,27 @@ public class WantedJobService {
                     String jobId = jobNode.path("id").asText();
                     String jobUrl = "https://www.wanted.co.kr/wd/" + jobId;
 
-                    // ✨ 파싱한 데이터를 Entity 객체에 담기
+                    if (jobPostingRepository.existsBySourceAndExternalJobId(SOURCE_WANTED, jobId)) {
+                        continue;
+                    }
+
                     JobPosting jobPosting = new JobPosting();
-                    jobPosting.setMemberId(1L); // 테스트용 임시 유저 ID (1번 유저)
+                    jobPosting.setMemberId(1L);
                     jobPosting.setCompanyName(companyName);
                     jobPosting.setTitle(title);
                     jobPosting.setUrl(jobUrl);
-                    jobPosting.setContent("원티드 크롤링 공고"); // 일단 임시 내용
+                    jobPosting.setSource(SOURCE_WANTED);
+                    jobPosting.setExternalJobId(jobId);
+                    // TODO: Replace this placeholder with detailed JD crawling or API integration.
+                    jobPosting.setContent(companyName + "의 " + title + " 공고입니다. 원티드에서 수집된 채용공고입니다.");
 
-                    // ✨ DB에 저장!
                     jobPostingRepository.save(jobPosting);
                     saveCount++;
                 }
-                System.out.println("🎉 총 " + saveCount + "개의 채용 공고가 DB에 성공적으로 저장되었습니다!");
+                System.out.println("Wanted jobs saved: " + saveCount);
             }
-
         } catch (Exception e) {
-            System.out.println("🚨 크롤링/저장 실패: " + e.getMessage());
+            System.out.println("Wanted job fetch failed: " + e.getMessage());
         }
     }
 }

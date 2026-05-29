@@ -31,6 +31,19 @@ public class JobPosting {
     @Column(length = 255)
     private String url;
 
+    @Column(name = "source", length = 50)
+    private String source;
+
+    @Column(name = "external_job_id", length = 100)
+    private String externalJobId;
+
     @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

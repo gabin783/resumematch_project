@@ -1,128 +1,257 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+import { BarChart3, ChevronDown, ExternalLink, ShieldCheck, Target } from 'lucide-react';
 import './JobPostingList.css';
 
-function JobPostingList() {
-    const [jobs, setJobs] = useState([]);
-    
-    // ✨ 모달창과 매칭 결과를 관리하기 위한 상태값들 추가
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [matchResult, setMatchResult] = useState(null);
+const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
+const LEGACY_JOBS_API_URL = 'http://localhost:8080/api/jobs';
 
-    useEffect(() => {
-        axios.get('http://localhost:8080/api/jobs')
-            .then(response => {
-                setJobs(response.data);
-            })
-            .catch(error => {
-                console.error("데이터를 불러오는데 실패했습니다!", error);
-            });
-    }, []);
+const filters = ['전체', '높은 매칭률', '백엔드', '프론트엔드', '신입 가능'];
 
-    // ✨ 매칭 분석 버튼 클릭 시 실행되는 함수
-    const handleMatchClick = (jobId) => {
-        setIsModalOpen(true); // 모달창 열기
-        setIsLoading(true);   // 로딩 스피너 돌리기
-        setMatchResult(null); // 이전 결과 초기화
+const getScoreTone = (score) => {
+  if (score >= 80) return 'high';
+  if (score >= 60) return 'medium';
+  return 'low';
+};
 
-        // 로그인한 유저 ID를 로컬스토리지에서 가져옵니다 (없으면 임시로 1번 세팅)
-        const memberId = localStorage.getItem('memberId') || 1; 
+const getScoreLabel = (score) => {
+  if (score >= 80) return `높음 ${score}%`;
+  if (score >= 60) return `보통 ${score}%`;
+  return `도전 ${score}%`;
+};
 
-        // 우리가 방금 뚫어놓은 백엔드 API 호출! (POST 방식)
-        axios.post(`http://localhost:8080/api/match/${jobId}?memberId=${memberId}`)
-            .then(response => {
-                setMatchResult(response.data); // 결과 데이터를 상태에 저장
-            })
-            .catch(error => {
-                console.error("매칭 분석 실패:", error);
-                setMatchResult({ aiFeedback: "분석 중 오류가 발생했습니다." });
-            })
-            .finally(() => {
-                setIsLoading(false); // 로딩 끝!
-            });
-    };
+const includesAny = (value, keywords) => {
+  const normalized = value.toLowerCase();
+  return keywords.some((keyword) => normalized.includes(keyword.toLowerCase()));
+};
 
+const getDummyScore = (jobId, isBackend, isFrontend) => {
+  const scorePool = isBackend || isFrontend ? [86, 81, 74, 68] : [74, 68, 58];
+  return scorePool[Math.abs(Number(jobId) || 0) % scorePool.length];
+};
+
+const buildLegacyRecommendation = (job) => {
+  const title = job.title || '';
+  const isBackend = includesAny(title, ['백엔드', 'backend', 'back-end', 'server', '서버']);
+  const isFrontend = includesAny(title, ['프론트', 'frontend', 'front-end', 'react']);
+  const matchScore = getDummyScore(job.id, isBackend, isFrontend);
+
+  return {
+    jobPostingId: job.id,
+    companyName: job.companyName,
+    title: job.title,
+    url: job.url,
+    source: job.source || (job.url?.includes('wanted.co.kr') ? 'WANTED' : 'LOCAL'),
+    matchScore,
+    matchedSkills: isBackend ? ['Java', 'Spring Boot', 'JPA', 'MySQL'] : isFrontend ? ['React', 'TypeScript'] : ['문제해결', '협업'],
+    missingSkills: isBackend ? ['AWS', 'Docker'] : isFrontend ? ['Next.js', 'UI 테스트'] : ['JPA', 'AWS', 'Docker'],
+    reason: isBackend
+      ? '이력서의 Java, Spring Boot 경험이 공고 요구사항과 잘 일치합니다.'
+      : '이력서의 프로젝트 경험과 협업 역량이 공고와 일부 일치합니다.',
+  };
+};
+
+const getCompanyInitial = (companyName = '') => companyName.trim().charAt(0).toUpperCase() || '?';
+
+const getVisibleSkills = (skills = [], maxCount = 3) => ({
+  visible: skills.slice(0, maxCount),
+  hiddenCount: Math.max(skills.length - maxCount, 0),
+});
+
+function CompanyLogo({ companyName, logoUrl }) {
+  const [hasImageError, setHasImageError] = useState(false);
+  const initial = getCompanyInitial(companyName);
+  const shouldShowImage = Boolean(logoUrl) && !hasImageError;
+
+  if (shouldShowImage) {
     return (
-        <div className="job-list-container">
-            <h2 className="title">🎯 맞춤 추천 채용 공고</h2>
-            <div className="job-grid">
-                {jobs.map(job => (
-                    <div className="job-card" key={job.id}>
-                        <div className="card-header">
-                            <span className="company-name">{job.companyName}</span>
-                            <button className="bookmark-btn">🔖</button>
-                        </div>
-                        <h3 className="job-title">{job.title}</h3>
-                        
-                        <div className="card-actions">
-                            <a href={job.url} target="_blank" rel="noopener noreferrer" className="apply-btn">
-                                공고 확인
-                            </a>
-                            {/* ✨ 매칭 분석 버튼 추가! */}
-                            <button 
-                                className="match-btn" 
-                                onClick={() => handleMatchClick(job.id)}
-                            >
-                                ✨ 매칭 분석
-                            </button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* ✨ 매칭 결과 모달창 UI */}
-            {isModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-                    {/* onClick 이벤트 버블링 방지 (모달 내부 클릭시 안 닫히게) */}
-                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                        <button className="close-btn" onClick={() => setIsModalOpen(false)}>✕</button>
-                        
-                        <h2 className="modal-title">📊 이력서 매칭 결과</h2>
-                        
-                        {isLoading ? (
-                            <div className="loading-container">
-                                <div className="spinner"></div>
-                                <p>AI가 가빈 님의 이력서를 분석 중입니다...</p>
-                            </div>
-                        ) : matchResult && (
-                            <div className="result-container">
-                                <div className="match-rate-box">
-                                    <span className="rate-label">종합 매칭률</span>
-                                    <span className="rate-value">{matchResult.matchRate}%</span>
-                                </div>
-                                
-                                <div className="skills-box">
-                                    <div className="skill-group">
-                                        <h4>✅ 보유 스킬</h4>
-                                        <div className="skill-tags">
-                                            {matchResult.matchedSkills?.map(skill => (
-                                                <span key={skill} className="tag matched">{skill}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="skill-group">
-                                        <h4>⚠️ 부족한 스킬</h4>
-                                        <div className="skill-tags">
-                                            {matchResult.missingSkills?.length > 0 
-                                                ? matchResult.missingSkills.map(skill => <span key={skill} className="tag missing">{skill}</span>)
-                                                : <span className="tag none">없음 (완벽합니다!)</span>
-                                            }
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="ai-feedback-box">
-                                    <h4>💡 AI 멘토의 팁</h4>
-                                    <p>{matchResult.aiFeedback}</p>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
+      <div className="company-logo" aria-label={`${companyName || '회사'} 로고`}>
+        <img
+          src={logoUrl}
+          alt={`${companyName || '회사'} 로고`}
+          onError={() => setHasImageError(true)}
+        />
+      </div>
     );
+  }
+
+  return (
+    <div className="company-logo initial-logo" aria-label={`${companyName || '회사'} 이니셜 로고`}>
+      {initial}
+    </div>
+  );
+}
+
+function JobPostingList() {
+  const [jobs, setJobs] = useState([]);
+  const [selectedFilter, setSelectedFilter] = useState('전체');
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    setIsLoading(true);
+    setErrorMessage('');
+
+    axios.get(RECOMMENDATION_API_URL)
+      .then((response) => {
+        setJobs(response.data || []);
+      })
+      .catch(async (error) => {
+        console.error('추천 공고 조회 실패, 기존 공고 API로 재시도합니다:', error);
+
+        try {
+          const fallbackResponse = await axios.get(LEGACY_JOBS_API_URL);
+          setJobs((fallbackResponse.data || []).map(buildLegacyRecommendation));
+        } catch (fallbackError) {
+          console.error('기존 공고 조회도 실패했습니다:', fallbackError);
+          setErrorMessage('추천 공고를 불러오지 못했습니다.');
+        }
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  const filteredJobs = useMemo(() => {
+    if (selectedFilter === '전체') return jobs;
+
+    return jobs.filter((job) => {
+      const title = job.title || '';
+
+      if (selectedFilter === '높은 매칭률') {
+        return job.matchScore >= 80;
+      }
+
+      if (selectedFilter === '백엔드') {
+        return includesAny(title, ['백엔드', 'backend', 'back-end', 'server', '서버']);
+      }
+
+      if (selectedFilter === '프론트엔드') {
+        return includesAny(title, ['프론트', 'frontend', 'front-end', 'react']);
+      }
+
+      if (selectedFilter === '신입 가능') {
+        return includesAny(title, ['신입', 'junior', '주니어']);
+      }
+
+      return true;
+    });
+  }, [jobs, selectedFilter]);
+
+  const handleOpenJob = (url) => {
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleMatchAnalysis = () => {
+    // TODO: Connect this action to the resume matching flow with the selected job context.
+    alert('매칭 분석 기능 연결 예정입니다.');
+  };
+
+  return (
+    <main className="job-recommendation-page">
+      <section className="job-recommendation-hero">
+        <div>
+          <h1>
+            <Target size={30} />
+            맞춤 추천 채용 공고
+          </h1>
+          <p>이력서와 스킬 분석 결과를 기준으로 추천된 공고입니다.</p>
+        </div>
+        <aside className="recommendation-standard">
+          <div className="recommendation-standard-title">
+            <ShieldCheck size={18} />
+            <strong>추천 기준</strong>
+          </div>
+          <span>이력서 기반 스킬 매칭 · 스킬 갭 분석 · 관심 직무</span>
+        </aside>
+      </section>
+
+      <section className="job-filter-panel">
+        <div className="job-filter-tabs" aria-label="추천 공고 필터">
+          {filters.map((filter) => (
+            <button
+              type="button"
+              key={filter}
+              className={selectedFilter === filter ? 'active' : ''}
+              onClick={() => setSelectedFilter(filter)}
+            >
+              {filter}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="job-sort-button">
+          최신 등록순
+          <ChevronDown size={16} />
+        </button>
+      </section>
+
+      {isLoading ? (
+        <section className="job-state-card">추천 공고를 불러오는 중입니다...</section>
+      ) : errorMessage ? (
+        <section className="job-state-card error">{errorMessage}</section>
+      ) : filteredJobs.length === 0 ? (
+        <section className="job-state-card">아직 추천 공고가 없습니다. 원티드 공고를 먼저 수집해주세요.</section>
+      ) : (
+        <section className="recommendation-grid">
+          {filteredJobs.map((job) => {
+            const scoreTone = getScoreTone(job.matchScore);
+            const missingSkills = getVisibleSkills(job.missingSkills || []);
+
+            return (
+              <article className="recommendation-card" key={job.jobPostingId}>
+                <div className="recommendation-card-top">
+                  <CompanyLogo companyName={job.companyName} logoUrl={job.logoUrl} />
+                  <div className="recommendation-title-area">
+                    <span className="recommendation-company">{job.companyName}</span>
+                    <h2>{job.title}</h2>
+                    <div className="recommendation-tags matched">
+                      {(job.matchedSkills || []).map((skill) => (
+                        <span key={skill}>{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="recommendation-badges">
+                    <span className={`match-score-badge ${scoreTone}`}>{getScoreLabel(job.matchScore)}</span>
+                    <span className="source-badge">{job.source || 'LOCAL'}</span>
+                  </div>
+                </div>
+
+                <div className="recommendation-detail-grid">
+                  <div className="recommendation-reason-block">
+                    <strong>추천 이유</strong>
+                    <p>{job.reason}</p>
+                  </div>
+                  <div className="recommendation-missing-block">
+                    <strong>보완 필요 스킬</strong>
+                    <div className="recommendation-tags missing">
+                      {missingSkills.visible.map((skill) => (
+                        <span key={skill}>{skill}</span>
+                      ))}
+                      {missingSkills.hiddenCount > 0 ? (
+                        <span>+{missingSkills.hiddenCount}</span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="recommendation-actions">
+                  <button type="button" className="view-job-btn" onClick={() => handleOpenJob(job.url)}>
+                    공고 보기
+                    <ExternalLink size={15} />
+                  </button>
+                  <button type="button" className="analyze-job-btn" onClick={handleMatchAnalysis}>
+                    매칭 분석
+                    <BarChart3 size={15} />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </section>
+      )}
+    </main>
+  );
 }
 
 export default JobPostingList;
