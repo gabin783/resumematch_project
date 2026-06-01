@@ -43,11 +43,11 @@ const Navbar = () => {
   `;
 
   const accountButtonClass = `
-    h-10 px-5 rounded-xl border text-[15px] font-semibold transition
+    h-9 rounded-[10px] border px-4 text-[14px] font-semibold transition-colors
     ${
       isActive('/mypage')
-        ? 'border-indigo-400 bg-slate-900 text-white'
-        : 'border-slate-600 text-slate-200 hover:bg-slate-900 hover:text-white'
+        ? 'border-indigo-400 bg-white/[0.08] text-white'
+        : 'border-slate-800 bg-white/[0.03] text-slate-200 hover:bg-white/[0.08] hover:text-white'
     }
   `;
 
@@ -99,7 +99,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={handleLogout}
-              className="h-10 rounded-xl bg-slate-700 px-5 text-[15px] font-bold text-white shadow-md transition hover:bg-slate-600"
+              className="h-9 rounded-[10px] bg-slate-800 px-4 text-[14px] font-bold text-white shadow-sm transition hover:bg-slate-600"
             >
               로그아웃
             </button>
@@ -107,7 +107,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={handleLogin}
-              className="h-10 rounded-xl bg-indigo-600 px-5 text-[15px] font-semibold text-white shadow-md transition hover:bg-indigo-500"
+              className="h-9 rounded-[10px] bg-indigo-600 px-4 text-[14px] font-semibold text-white shadow-sm transition hover:bg-indigo-500"
             >
               로그인
             </button>
