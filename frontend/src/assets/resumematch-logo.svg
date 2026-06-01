@@ -1,0 +1,20 @@
+<svg width="232" height="48" viewBox="0 0 232 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="rm-icon-gradient" x1="6" y1="4" x2="45" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9AA8FF"/>
+      <stop offset="0.46" stop-color="#5867F4"/>
+      <stop offset="1" stop-color="#21C59A"/>
+    </linearGradient>
+    <linearGradient id="rm-mark-gradient" x1="8" y1="6" x2="34" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4C63FF"/>
+      <stop offset="1" stop-color="#21C59A"/>
+    </linearGradient>
+  </defs>
+  <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#rm-icon-gradient)" opacity="0.22"/>
+  <path d="M6.2 43.8L15.1 4.2H31.8C36.5 4.2 40.2 5.4 42.8 7.8C45.4 10.1 46.4 13.2 45.8 17C45.4 20 44.1 22.6 42 24.7C39.9 26.8 37 28.2 33.5 29L43.6 43.8H31.7L23.1 30H18.4L15.4 43.8H6.2ZM20.1 21.9H29.7C31.7 21.9 33.3 21.5 34.5 20.7C35.7 19.9 36.4 18.6 36.6 16.9C36.8 15.4 36.4 14.3 35.4 13.5C34.4 12.7 33 12.3 31 12.3H22.1L20.1 21.9Z" fill="url(#rm-mark-gradient)"/>
+  <rect x="7.8" y="6.4" width="16" height="16" rx="4" fill="#4C63FF"/>
+  <path d="M12.2 14.4L15 17.1L20.3 10.8" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="58" y="31" fill="#F8FAFC" font-family="Inter, Pretendard, Arial, sans-serif" font-size="23" font-weight="900" letter-spacing="-0.2">
+    ResumeMatch
+  </text>
+</svg>

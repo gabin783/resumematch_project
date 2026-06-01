@@ -1,117 +1,118 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import resumeMatchLogo from '../assets/resumematch-logo.svg';
+
+const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '6c26e45a1be28d1c9d6d41d9edaeb2d2';
+const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/oauth/kakao/callback';
+
+const menuItems = [
+  { path: '/match', label: '이력서 매칭' },
+  { path: '/result', label: '스킬 갭 분석' },
+  { path: '/roadmap', label: '학습 로드맵' },
+  { path: '/jobs', label: '추천 공고' },
+];
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // 로그인 상태를 관리할 변수
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // 화면 주소가 바뀔 때마다 로그인 상태 확인
   useEffect(() => {
-    const storedName = localStorage.getItem('nickname');
-    if (storedName) {
-      setIsLoggedIn(true);
-    } else {
-      setIsLoggedIn(false);
-    }
+    setIsLoggedIn(Boolean(localStorage.getItem('nickname')));
   }, [location.pathname]);
 
-  // 카카오 로그인 주소 설정
-  const KAKAO_CLIENT_ID = "6c26e45a1be28d1c9d6d41d9edaeb2d2"; 
-  const REDIRECT_URI = "http://localhost:5173/oauth/kakao/callback";
   const kakaoURL = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code`;
 
   const handleLogin = () => {
-    window.location.href = kakaoURL; 
+    window.location.href = kakaoURL;
   };
 
-  // 로그아웃 처리 함수
   const handleLogout = () => {
     localStorage.removeItem('memberId');
     localStorage.removeItem('nickname');
     setIsLoggedIn(false);
     alert('성공적으로 로그아웃 되었습니다.');
-    navigate('/'); 
+    navigate('/');
   };
 
   const isActive = (path) => location.pathname === path;
 
   const menuClass = (path) => `
-    relative pb-2 font-semibold transition-colors
-    ${isActive(path) ? 'text-white' : 'text-slate-400 hover:text-slate-200'}
+    relative px-1 pb-2 text-[17px] font-semibold tracking-normal transition-colors
+    ${isActive(path) ? 'text-white' : 'text-slate-400 hover:text-slate-100'}
+  `;
+
+  const accountButtonClass = `
+    h-10 px-5 rounded-xl border text-[15px] font-semibold transition
+    ${
+      isActive('/mypage')
+        ? 'border-indigo-400 bg-slate-900 text-white'
+        : 'border-slate-600 text-slate-200 hover:bg-slate-900 hover:text-white'
+    }
   `;
 
   return (
-    <nav className="sticky top-0 z-50 w-full h-[70px] bg-black border-b border-slate-800 shadow-lg flex justify-center items-center">
-      <div className="w-full max-w-6xl px-6 flex justify-between items-center">
-        
-        {/* 좌측: 로고 */}
-        <div 
-          className="text-2xl font-extrabold text-white cursor-pointer tracking-tight"
+    <nav className="sticky top-0 z-50 flex h-[66px] w-full items-center justify-center border-b border-slate-800 bg-black shadow-lg">
+      <div className="flex w-full max-w-7xl items-center justify-between px-8">
+        <div
+          className="cursor-pointer"
           onClick={() => navigate('/')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              navigate('/');
+            }
+          }}
         >
-          <span className="text-indigo-400">Match</span>Maker
+          <img
+            src={resumeMatchLogo}
+            alt="ResumeMatch"
+            className="h-9 w-auto object-contain"
+          />
         </div>
 
-        {/* 중앙: 메인 메뉴 */}
-        <ul className="hidden md:flex gap-10 m-0 p-0 list-none">
-          <li>
-            <Link to="/match" className={menuClass('/match')}>
-              이력서 매칭
-              {isActive('/match') && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-indigo-400 rounded-t-sm"></span>}
-            </Link>
-          </li>
-          <li>
-            <Link to="/result" className={menuClass('/result')}>
-              스킬 갭 분석
-              {isActive('/result') && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-indigo-400 rounded-t-sm"></span>}
-            </Link>
-          </li>
-          <li>
-            <Link to="/roadmap" className={menuClass('/roadmap')}>
-              학습 로드맵
-              {isActive('/roadmap') && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-indigo-400 rounded-t-sm"></span>}
-            </Link>
-          </li>
-          {/* ✨ 새로 추가된 추천 공고 메뉴! */}
-          <li>
-            <Link to="/jobs" className={menuClass('/jobs')}>
-              추천 공고
-              {isActive('/jobs') && <span className="absolute bottom-0 left-0 w-full h-[3px] bg-indigo-400 rounded-t-sm"></span>}
-            </Link>
-          </li>
+        {/* TODO: 모바일 화면에서는 햄버거 메뉴 또는 하단 메뉴로 네비게이션을 보완해야 합니다. */}
+        <ul className="m-0 hidden list-none gap-8 p-0 md:flex">
+          {menuItems.map((item) => (
+            <li key={item.path}>
+              <Link to={item.path} className={menuClass(item.path)}>
+                {item.label}
+                {isActive(item.path) ? (
+                  <span className="absolute bottom-0 left-1/2 h-[2.5px] w-4/5 -translate-x-1/2 rounded-full bg-indigo-400" />
+                ) : null}
+              </Link>
+            </li>
+          ))}
         </ul>
 
-        {/* 우측: 유저 메뉴 */}
-        <div className="flex gap-4 items-center">
-          <button 
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
             onClick={() => navigate('/mypage')}
-            className="px-4 py-2 rounded-lg font-semibold border border-slate-600 text-slate-200 hover:bg-slate-800 hover:text-white transition"
+            className={accountButtonClass}
           >
             마이페이지
           </button>
 
           {isLoggedIn ? (
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={handleLogout}
-                className="px-4 py-2 rounded-lg font-bold bg-slate-700 text-white hover:bg-slate-600 transition shadow-md"
-              >
-                로그아웃
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="h-10 rounded-xl bg-slate-700 px-5 text-[15px] font-bold text-white shadow-md transition hover:bg-slate-600"
+            >
+              로그아웃
+            </button>
           ) : (
-            <button 
+            <button
+              type="button"
               onClick={handleLogin}
-              className="px-4 py-2 rounded-lg font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md"
+              className="h-10 rounded-xl bg-indigo-600 px-5 text-[15px] font-semibold text-white shadow-md transition hover:bg-indigo-500"
             >
               로그인
             </button>
           )}
         </div>
-
       </div>
     </nav>
   );
