@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -11,10 +11,10 @@ import {
 } from 'lucide-react';
 import './ResultPage.css';
 
-const defaultOwnedSkills = ['의사소통', '문제해결', '데이터 분석', '협업', '기획력'];
+const defaultOwnedSkills = ['의사소통', '문제 해결', '데이터 분석', '협업', '기획'];
 const defaultMatchedSkills = ['데이터 처리', 'Python 기반 분석'];
 const defaultPartialSkills = ['머신러닝 기초', '통계 분석'];
-const defaultNeedSkills = ['SQL 고급 활용', '모델 검증 경험'];
+const defaultNeedSkills = ['고급 SQL', '모델 검증 경험'];
 
 const toSkillArray = (value) => {
   if (!value) return [];
@@ -29,6 +29,18 @@ const toSkillArray = (value) => {
   }
 
   if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => String(item).trim()).filter(Boolean);
+        }
+      } catch {
+        // Fall through to delimiter based parsing for legacy comma strings.
+      }
+    }
+
     return value
       .split(/[,|\n]/)
       .map((skill) => skill.trim())
@@ -43,7 +55,7 @@ const splitTextLines = (value) => {
 
   return value
     .split(/\n|\. /)
-    .map((line) => line.replace(/^[\s\-•\d.]+/, '').trim())
+    .map((line) => line.replace(/^[\s\-??d.]+/, '').trim())
     .filter(Boolean);
 };
 
@@ -117,6 +129,11 @@ const ResultPage = () => {
           : defaultOwnedSkills;
 
     const learningLines = splitTextLines(resultData.learningDirection);
+    const jobRequiredSkills = toSkillArray(resultData.requiredSkills);
+    const jobPreferredSkills = toSkillArray(resultData.preferredSkills);
+    const jobMainTasks = toSkillArray(resultData.mainTasks);
+    const jobKeywords = toSkillArray(resultData.jobKeywords || resultData.keywords);
+    const jobSummary = resultData.jobSummary || resultData.summary || '';
     const roadmapItems =
       learningLines.length > 0
         ? learningLines.slice(0, 3)
@@ -138,6 +155,17 @@ const ResultPage = () => {
       ownedProgress: buildProgressItems(ownedSkills, [85, 80, 75, 70, 65]),
       missingProgress: buildProgressItems(needSkills, [30, 25, 35, 30, 45]),
       roadmapItems,
+      jobRequiredSkills,
+      jobPreferredSkills,
+      jobMainTasks,
+      jobKeywords,
+      jobSummary,
+      hasJobAnalysis:
+        jobRequiredSkills.length > 0 ||
+        jobPreferredSkills.length > 0 ||
+        jobMainTasks.length > 0 ||
+        jobKeywords.length > 0 ||
+        jobSummary.length > 0,
     };
   }, [resultData]);
 
@@ -195,11 +223,11 @@ const ResultPage = () => {
         level: item.score,
         jdRequirement: `${report.targetJob} 공고에서 ${item.name} 관련 실무 활용 경험을 요구합니다.`,
         resumeEvidence: isMissing
-          ? `이력서에는 ${item.name}을 직접 수행한 프로젝트, 성과, 사용 맥락이 충분히 드러나지 않습니다.`
+          ? `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`
           : `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`,
         recommendation: isMissing
           ? `${item.name} 기초 개념을 정리한 뒤 작은 실습 프로젝트로 사용 근거를 보완하세요.`
-          : `${item.name} 강점을 유지하면서 JD 키워드와 연결되는 성과 표현을 더 구체화하세요.`,
+          : `${item.name} 강점을 유지하면서 JD 키워드와 연결되는 성과 표현을 구체화하세요.`,
       })),
     });
   };
@@ -228,12 +256,15 @@ const ResultPage = () => {
             <span>지원 직무</span>
             <strong>{report.targetJob}</strong>
             <p>{report.analysis}</p>
+            {report.jobSummary ? <p className="job-summary-note">{report.jobSummary}</p> : null}
           </div>
           <div className="summary-tags">
             <div className="result-tags">
-              {[...report.matchedSkills, ...report.partialSkills].slice(0, 5).map((skill) => (
-                <span key={skill}>{skill}</span>
-              ))}
+              {(report.hasJobAnalysis ? report.jobKeywords : [...report.matchedSkills, ...report.partialSkills])
+                .slice(0, 5)
+                .map((skill) => (
+                  <span key={skill}>{skill}</span>
+                ))}
             </div>
           </div>
         </article>
@@ -241,41 +272,83 @@ const ResultPage = () => {
         <article className="result-card jd-card">
           <h2>JD 핵심 요구사항 매칭</h2>
 
-          <div className="jd-group good">
-            <div className="jd-title">
-              <CheckCircle2 size={22} />
-              <strong>일치</strong>
-            </div>
-            <div className="result-tags">
-              {report.matchedSkills.slice(0, 3).map((skill) => (
-                <span key={skill}>{skill}</span>
-              ))}
-            </div>
-          </div>
+          {report.hasJobAnalysis ? (
+            <>
+              <div className="jd-group good">
+                <div className="jd-title">
+                  <CheckCircle2 size={22} />
+                  <strong>필수 스킬</strong>
+                </div>
+                <div className="result-tags">
+                  {report.jobRequiredSkills.slice(0, 4).map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
 
-          <div className="jd-group partial">
-            <div className="jd-title">
-              <CircleEllipsis size={22} />
-              <strong>부분 일치</strong>
-            </div>
-            <div className="result-tags">
-              {report.partialSkills.slice(0, 3).map((skill) => (
-                <span key={skill}>{skill}</span>
-              ))}
-            </div>
-          </div>
+              <div className="jd-group partial">
+                <div className="jd-title">
+                  <CircleEllipsis size={22} />
+                  <strong>우대 스킬</strong>
+                </div>
+                <div className="result-tags">
+                  {report.jobPreferredSkills.slice(0, 4).map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
 
-          <div className="jd-group need">
-            <div className="jd-title">
-              <AlertTriangle size={22} />
-              <strong>보완 필요</strong>
-            </div>
-            <div className="result-tags">
-              {report.needSkills.slice(0, 3).map((skill) => (
-                <span key={skill}>{skill}</span>
-              ))}
-            </div>
-          </div>
+              <div className="jd-group need">
+                <div className="jd-title">
+                  <AlertTriangle size={22} />
+                  <strong>주요 업무</strong>
+                </div>
+                <div className="result-tags">
+                  {report.jobMainTasks.slice(0, 3).map((task) => (
+                    <span key={task}>{task}</span>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="jd-group good">
+                <div className="jd-title">
+                  <CheckCircle2 size={22} />
+                  <strong>일치</strong>
+                </div>
+                <div className="result-tags">
+                  {report.matchedSkills.slice(0, 3).map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="jd-group partial">
+                <div className="jd-title">
+                  <CircleEllipsis size={22} />
+                  <strong>부분 일치</strong>
+                </div>
+                <div className="result-tags">
+                  {report.partialSkills.slice(0, 3).map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="jd-group need">
+                <div className="jd-title">
+                  <AlertTriangle size={22} />
+                  <strong>보완 필요</strong>
+                </div>
+                <div className="result-tags">
+                  {report.needSkills.slice(0, 3).map((skill) => (
+                    <span key={skill}>{skill}</span>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
         </article>
 
         <article className="result-card skill-card">
@@ -300,6 +373,7 @@ const ResultPage = () => {
             ))}
           </div>
         </article>
+
 
         <article className="result-card skill-card">
           <div className="card-title-row">
@@ -390,7 +464,7 @@ const ResultPage = () => {
                       <dd>{item.jdRequirement}</dd>
                     </div>
                     <div>
-                      <dt>이력서에서 부족한 근거</dt>
+                      <dt>이력서 근거</dt>
                       <dd>{item.resumeEvidence}</dd>
                     </div>
                     <div>

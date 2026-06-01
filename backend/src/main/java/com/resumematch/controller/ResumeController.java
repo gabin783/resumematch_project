@@ -1,21 +1,29 @@
 package com.resumematch.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 import com.resumematch.dto.GapMatchRequest;
 import com.resumematch.dto.GapMatchResponse;
 import com.resumematch.dto.ResumeParseResponse;
-import com.resumematch.entity.AnalysisResult; // ✨ 추가된 엔티티 임포트
+import com.resumematch.entity.AnalysisResult;
 import com.resumematch.entity.Resume;
-import com.resumematch.repository.AnalysisResultRepository; // ✨ 추가된 레포지토리 임포트
+import com.resumematch.repository.AnalysisResultRepository;
 import com.resumematch.repository.ResumeRepository;
 import com.resumematch.service.FileParsingService;
 import com.resumematch.service.OllamaAiService;
 import com.resumematch.service.ResumeAnalyzerService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -32,16 +40,14 @@ public class ResumeController {
     private final ResumeAnalyzerService resumeAnalyzerService;
     private final OllamaAiService ollamaAiService;
     private final ResumeRepository resumeRepository;
-
-    // ✨ [추가] 분석 결과를 저장하기 위한 Repository
     private final AnalysisResultRepository analysisResultRepository;
 
     private static final Set<String> STOP_WORDS = new HashSet<>(Arrays.asList(
-            "이력서", "지원", "분야", "희망", "연봉", "회사", "성명", "한글", "영문", "목차",
+            "이력서", "지원", "분야", "성명", "이름", "회사", "직무", "학교", "학과", "목차",
             "생년월일", "전화", "메일", "주소", "성격", "소개", "내용", "주제", "선정", "정의",
-            "개발", "환경", "기대", "효과", "기획", "의도", "목적", "팀원", "팀장", "경험",
-            "사항", "고민", "노력", "사용자", "불편", "고려", "일정", "관리", "데이터", "수집",
-            "기술", "서비스", "파트", "스택", "과정", "프로젝트", "사이트", "구축", "작성"
+            "개발", "환경", "기반", "효과", "기획", "용도", "목적", "관리", "운영", "경험",
+            "사항", "고민", "능력", "사용", "불편", "고려", "일정", "데이터", "수집",
+            "기술", "서비스", "파트", "스택", "과정", "프로젝트", "사이드", "구분", "작성"
     ));
 
     private static final List<String> MUST_HAVE_STACKS = Arrays.asList(
@@ -73,7 +79,7 @@ public class ResumeController {
             System.out.println(joinedKeywords);
 
             String prompt = "[목록]: " + joinedKeywords + "\n\n" +
-                    "명령: 위 목록에서 프로그래밍 언어, 프레임워크, DB, 인프라 용어만 골라내세요.\n" +
+                    "명령: 이 목록에서 프로그래밍 언어, 프레임워크, DB, 인프라 도구만 골라주세요.\n" +
                     "규칙 1: Blue, Green, List, Return 같은 일반 영어 단어는 제외하세요.\n" +
                     "규칙 2: 설명 없이 단어만 쉼표(,)로 나열하세요.\n" +
                     "결과: ";
@@ -107,7 +113,7 @@ public class ResumeController {
                     .build();
 
             resumeRepository.save(savedResume);
-            System.out.println("✅ DB 저장 완료! 저장된 이력서 ID: " + savedResume.getId());
+            System.out.println("DB 저장 완료! 저장된 이력서 ID: " + savedResume.getId());
 
             return ResponseEntity.ok().body(new ResumeParseResponse("success", distinctSkills.size(), distinctSkills));
 
@@ -117,11 +123,9 @@ public class ResumeController {
         }
     }
 
-    // ✨ [수정됨] 스킬 갭 분석 + DB 저장 로직 추가
     @PostMapping("/gap-match")
     public ResponseEntity<?> analyzeGap(@RequestBody GapMatchRequest requestDto) {
         try {
-            // 1. DB에서 가장 최근 이력서 가져오기
             Resume latestResume = resumeRepository.findAll().stream()
                     .sorted((r1, r2) -> r2.getCreatedAt().compareTo(r1.getCreatedAt()))
                     .findFirst()
@@ -131,12 +135,10 @@ public class ResumeController {
                 return ResponseEntity.badRequest().body("이력서 정보가 없습니다. 먼저 이력서를 업로드해주세요.");
             }
 
-            // ✨ DB에서 가져온 String 스킬 목록을 List<String>으로 변환해서 전달합니다.
             List<String> resumeSkillsList = Arrays.asList(latestResume.getSkills().split(","));
 
-            // 2. AI 분석 진행
             String jsonResponse = ollamaAiService.analyzeGapWithGemma(
-                    resumeSkillsList,        // ✨ 이제 타입이 List<String>으로 일치합니다!
+                    resumeSkillsList,
                     requestDto.getJdText(),
                     requestDto.getTargetJob()
             );
@@ -145,25 +147,49 @@ public class ResumeController {
             ObjectMapper objectMapper = new ObjectMapper();
             GapMatchResponse response = objectMapper.readValue(jsonResponse, GapMatchResponse.class);
 
-            // 3. 분석 결과 DB 저장
             AnalysisResult resultEntity = AnalysisResult.builder()
                     .targetJob(requestDto.getTargetJob())
                     .jdText(requestDto.getJdText())
                     .analysis(response.getAnalysis())
                     .learningDirection(response.getLearningDirection())
-                    // missingSkills 리스트를 콤마로 연결해서 문자열로 저장
                     .missingSkills(response.getMissingSkills() != null ? String.join(",", response.getMissingSkills()) : "")
+                    .requiredSkills(toJson(objectMapper, requestDto.getRequiredSkills()))
+                    .preferredSkills(toJson(objectMapper, requestDto.getPreferredSkills()))
+                    .mainTasks(toJson(objectMapper, requestDto.getMainTasks()))
+                    .jobKeywords(toJson(objectMapper, requestDto.getKeywords()))
+                    .jobSummary(requestDto.getSummary())
+                    .jobAnalyzedAt(hasJobAnalysis(requestDto) ? LocalDateTime.now() : null)
                     .build();
 
             analysisResultRepository.save(resultEntity);
-            System.out.println("✅ AI 스킬 갭 분석 결과 DB 저장 완료! ID: " + resultEntity.getId());
+            System.out.println("AI 스킬 갭 분석 결과 DB 저장 완료! ID: " + resultEntity.getId());
 
             return ResponseEntity.ok().body(response);
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("분석 에러: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("분석 오류: " + e.getMessage());
         }
+    }
+
+    private String toJson(ObjectMapper objectMapper, List<String> values) {
+        if (values == null) {
+            return null;
+        }
+
+        try {
+            return objectMapper.writeValueAsString(values);
+        } catch (Exception e) {
+            return String.join(",", values);
+        }
+    }
+
+    private boolean hasJobAnalysis(GapMatchRequest requestDto) {
+        return (requestDto.getRequiredSkills() != null && !requestDto.getRequiredSkills().isEmpty())
+                || (requestDto.getPreferredSkills() != null && !requestDto.getPreferredSkills().isEmpty())
+                || (requestDto.getMainTasks() != null && !requestDto.getMainTasks().isEmpty())
+                || (requestDto.getKeywords() != null && !requestDto.getKeywords().isEmpty())
+                || (requestDto.getSummary() != null && !requestDto.getSummary().trim().isEmpty());
     }
 
     @DeleteMapping("/{id}")
@@ -177,11 +203,9 @@ public class ResumeController {
         }
     }
 
-    // ✨ [추가] AI 스킬 갭 분석 기록 삭제 API
     @DeleteMapping("/analysis/{id}")
     public ResponseEntity<?> deleteAnalysisResult(@PathVariable("id") Long id) {
         try {
-            // analysisResultRepository를 이용해 DB에서 삭제
             analysisResultRepository.deleteById(id);
             return ResponseEntity.ok().body("분석 기록 삭제 완료");
         } catch (Exception e) {

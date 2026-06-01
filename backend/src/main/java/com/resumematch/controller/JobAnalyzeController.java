@@ -1,0 +1,26 @@
+package com.resumematch.controller;
+
+import com.resumematch.dto.JobAnalyzeRequest;
+import com.resumematch.dto.JobAnalyzeResponse;
+import com.resumematch.service.JobAnalyzeService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/job")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:5173")
+public class JobAnalyzeController {
+    private final JobAnalyzeService jobAnalyzeService;
+
+    @PostMapping("/analyze")
+    public ResponseEntity<JobAnalyzeResponse> analyze(@RequestBody(required = false) JobAnalyzeRequest request) {
+        String jobDescription = request == null ? null : request.getJobDescription();
+        return ResponseEntity.ok(jobAnalyzeService.analyze(jobDescription));
+    }
+}

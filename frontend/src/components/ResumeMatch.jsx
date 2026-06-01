@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import './ResumeMatch.css';
 
 const API_BASE_URL = 'http://localhost:8080/api/resume';
+const JOB_ANALYZE_API_URL = 'http://localhost:8080/api/job/analyze';
 const MAX_JD_LENGTH = 5000;
 
 const steps = [
@@ -14,14 +15,40 @@ const steps = [
 
 const sampleExtractedJob = {
   targetJob: '백엔드 개발자',
-  company: 'ABC Tech',
+  company: '분석 결과',
+  requiredSkills: ['Java', 'Spring Boot', 'JPA', 'MySQL'],
+  preferredSkills: ['AWS', 'Docker'],
+  mainTasks: ['REST API 개발', '데이터베이스 연동', '서버 운영'],
   keywords: ['Java', 'Spring Boot', 'JPA', 'MySQL', 'AWS', 'REST API'],
-  summary: 'AI가 공고 내용을 분석해 핵심 역량과 기술 키워드를 추출했습니다.',
+  summary: '채용공고 분석에 실패한 경우 표시하는 기본 분석 결과입니다.',
   details: [
     'Spring Boot 기반 REST API 개발 역량이 중요합니다.',
-    'JPA와 MySQL을 활용한 데이터 모델링 경험이 요구됩니다.',
+    'JPA와 MySQL을 사용한 데이터 모델링 경험을 요구합니다.',
     'AWS 환경에서 서비스 배포와 운영 경험이 있으면 유리합니다.',
   ],
+};
+
+const toArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const normalizeJobAnalysis = (data) => {
+  const requiredSkills = toArray(data?.requiredSkills);
+  const preferredSkills = toArray(data?.preferredSkills);
+  const mainTasks = toArray(data?.mainTasks);
+  const keywords = toArray(data?.keywords);
+  const mergedKeywords = keywords.length > 0
+    ? keywords
+    : [...requiredSkills, ...preferredSkills].filter(Boolean);
+
+  return {
+    targetJob: data?.targetJob || '분석된 직무',
+    company: 'LLM 분석 결과',
+    requiredSkills,
+    preferredSkills,
+    mainTasks,
+    keywords: mergedKeywords,
+    summary: data?.summary || '채용공고 분석 결과입니다.',
+    details: mainTasks.length > 0 ? mainTasks : ['채용공고 분석 결과를 불러오지 못했습니다.'],
+  };
 };
 
 const ResumeMatch = () => {
@@ -34,17 +61,13 @@ const ResumeMatch = () => {
   const [jobUrl, setJobUrl] = useState('');
   const [targetJob, setTargetJob] = useState('');
   const [jobDescription, setJobDescription] = useState('');
-  const [extractedJob, setExtractedJob] = useState(null);
+  const [jobAnalysisResult, setJobAnalysisResult] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const isResumeCompleted = Boolean(parsedResumeData?.skills?.length);
-
-  const isJobCompleted =
-    inputMode === 'url'
-      ? Boolean(extractedJob && jobDescription.trim())
-      : targetJob.trim().length > 0 && jobDescription.trim().length > 0;
+  const isJobCompleted = Boolean(jobAnalysisResult);
 
   const canAnalyze =
     isResumeCompleted &&
@@ -70,11 +93,7 @@ const ResumeMatch = () => {
   };
 
   const getStepLineState = (index) => {
-    if (index === 0) {
-      return isResumeCompleted && isJobCompleted ? 'line-completed' : '';
-    }
-
-    if (index === 1) {
+    if (index === 0 || index === 1) {
       return isResumeCompleted && isJobCompleted ? 'line-completed' : '';
     }
 
@@ -114,14 +133,28 @@ const ResumeMatch = () => {
 
   const handleModeChange = (mode) => {
     setInputMode(mode);
-    setIsDetailOpen(false);
-    if (mode === 'manual') {
-      setExtractedJob(null);
-    }
+  };
+
+  const applyJobAnalysis = (analysis) => {
+    setJobAnalysisResult(analysis);
+    setTargetJob(analysis.targetJob);
+    setIsDetailOpen(true);
+  };
+
+  const requestJobAnalysis = async (description) => {
+    const response = await axios.post(
+      JOB_ANALYZE_API_URL,
+      { jobDescription: description },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    return normalizeJobAnalysis(response.data);
   };
 
   const handleLoadJobFromUrl = async () => {
-    if (!jobUrl.trim()) {
+    const description = jobUrl.trim();
+
+    if (!description) {
       alert('채용공고 URL을 입력해주세요.');
       return;
     }
@@ -130,34 +163,67 @@ const ResumeMatch = () => {
     setIsDetailOpen(false);
 
     try {
-      // TODO: 백엔드 URL 분석 API가 준비되면 이 mock 데이터를 API 응답으로 교체합니다.
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setExtractedJob(sampleExtractedJob);
-      setTargetJob(sampleExtractedJob.targetJob);
-      setJobDescription(
-        `${sampleExtractedJob.company} ${sampleExtractedJob.targetJob}\n` +
-          `핵심 키워드: ${sampleExtractedJob.keywords.join(', ')}\n` +
-          sampleExtractedJob.details.join('\n'),
-      );
+      // TODO: URL 본문 추출 API가 준비되면 URL 자체가 아니라 실제 채용공고 본문을 전달합니다.
+      const temporaryDescription = `채용공고 URL: ${description}`;
+      const analysis = await requestJobAnalysis(temporaryDescription);
+      applyJobAnalysis(analysis);
     } catch (error) {
-      console.error('채용공고 URL 불러오기 오류:', error);
+      console.error('채용공고 URL 분석 오류:', error);
+      applyJobAnalysis(sampleExtractedJob);
       alert('채용공고를 불러오지 못했습니다. 직접 입력 탭을 이용해주세요.');
     } finally {
       setIsLoadingJob(false);
     }
   };
 
+  const handleAnalyzeJobDescription = async () => {
+    const originalDescription = jobDescription.trim();
+
+    // TODO: 분석 안정화 후 임시 디버그 로그는 제거합니다.
+    console.log('채용공고 분석 버튼 클릭');
+    console.log('분석 요청 jobDescription:', originalDescription);
+
+    if (!originalDescription) {
+      alert('채용공고 내용을 입력해주세요.');
+      return;
+    }
+
+    setIsLoadingJob(true);
+    setIsDetailOpen(false);
+
+    try {
+      const analysis = await requestJobAnalysis(originalDescription);
+      console.log('채용공고 분석 응답:', analysis);
+      applyJobAnalysis(analysis);
+    } catch (error) {
+      console.error('채용공고 분석 오류:', error);
+      applyJobAnalysis(sampleExtractedJob);
+      alert('채용공고 분석에 실패했습니다. 직접 입력 내용을 확인해주세요.');
+    } finally {
+      setIsLoadingJob(false);
+    }
+  };
+
   const handleAnalyzeJD = async () => {
+    const currentJobDescription = jobDescription.trim() || (inputMode === 'url' ? jobUrl.trim() : '');
+
     if (!resumeFile || !parsedResumeData?.skills?.length) {
       alert('먼저 이력서를 업로드해주세요.');
       return;
     }
+
+    if (!jobAnalysisResult) {
+      alert('먼저 채용공고 분석을 실행해주세요.');
+      return;
+    }
+
     if (!targetJob.trim()) {
       alert('목표 직무를 입력해주세요.');
       return;
     }
-    if (!jobDescription.trim()) {
-      alert('채용 공고 내용을 입력해주세요.');
+
+    if (!currentJobDescription) {
+      alert('채용공고 내용을 입력해주세요.');
       return;
     }
 
@@ -168,27 +234,110 @@ const ResumeMatch = () => {
         `${API_BASE_URL}/gap-match`,
         {
           resumeSkills: parsedResumeData.skills,
-          jdText: jobDescription,
+          jdText: currentJobDescription,
           targetJob,
+          requiredSkills: jobAnalysisResult?.requiredSkills || [],
+          preferredSkills: jobAnalysisResult?.preferredSkills || [],
+          mainTasks: jobAnalysisResult?.mainTasks || [],
+          keywords: jobAnalysisResult?.keywords || [],
+          summary: jobAnalysisResult?.summary || '',
         },
         {
           headers: { 'Content-Type': 'application/json' },
         },
       );
 
-      navigate('/result', { state: { analysisResult: response.data } });
+      navigate('/result', {
+        state: {
+          analysisResult: {
+            ...response.data,
+            targetJob,
+            jdText: currentJobDescription,
+            requiredSkills: jobAnalysisResult?.requiredSkills || [],
+            preferredSkills: jobAnalysisResult?.preferredSkills || [],
+            mainTasks: jobAnalysisResult?.mainTasks || [],
+            jobKeywords: jobAnalysisResult?.keywords || [],
+            jobSummary: jobAnalysisResult?.summary || '',
+          },
+        },
+      });
     } catch (error) {
-      console.error('분석 에러 발생:', error);
+      console.error('스킬 갭 분석 오류:', error);
       alert('AI 분석에 실패했습니다. 백엔드 서버 상태와 콘솔 로그를 확인해주세요.');
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const visibleKeywords = extractedJob?.keywords.slice(0, 3) || [];
-  const extraKeywordCount = extractedJob
-    ? Math.max(extractedJob.keywords.length - visibleKeywords.length, 0)
+  const handleJobDescriptionChange = (value) => {
+    setJobDescription(value);
+    setJobAnalysisResult(null);
+    setIsDetailOpen(false);
+  };
+
+  const visibleKeywords = jobAnalysisResult?.keywords.slice(0, 3) || [];
+  const extraKeywordCount = jobAnalysisResult
+    ? Math.max(jobAnalysisResult.keywords.length - visibleKeywords.length, 0)
     : 0;
+
+  const renderExtractedJobCard = () => {
+    if (!jobAnalysisResult) return null;
+
+    return (
+      <div className={`rm-extract-summary${isDetailOpen ? ' open' : ''}`}>
+        <strong>AI 추출 완료</strong>
+        <p>{jobAnalysisResult.targetJob} · {jobAnalysisResult.company}</p>
+        <span>
+          {visibleKeywords.join(' · ')}
+          {extraKeywordCount > 0 ? ` 외 ${extraKeywordCount}개` : ''}
+        </span>
+        <button type="button" onClick={() => setIsDetailOpen((open) => !open)}>
+          {isDetailOpen ? '상세 닫기' : '상세 보기'}
+        </button>
+
+        {isDetailOpen ? (
+          <div className="rm-extract-detail">
+            <h3>상세 분석 내용</h3>
+
+            <div className="rm-keyword-block">
+              <strong>필수 스킬</strong>
+              <div className="rm-keywords">
+                {jobAnalysisResult.requiredSkills.map((skill) => (
+                  <span key={skill}>{skill}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rm-keyword-block">
+              <strong>우대 스킬</strong>
+              <div className="rm-keywords">
+                {jobAnalysisResult.preferredSkills.map((skill) => (
+                  <span key={skill}>{skill}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rm-keyword-block">
+              <strong>핵심 키워드</strong>
+              <div className="rm-keywords">
+                {jobAnalysisResult.keywords.map((keyword) => (
+                  <span key={keyword}>{keyword}</span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rm-ai-note">{jobAnalysisResult.summary}</div>
+
+            <ul>
+              {jobAnalysisResult.details.map((detail) => (
+                <li key={detail}>{detail}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+      </div>
+    );
+  };
 
   return (
     <main className="rm-page">
@@ -233,7 +382,7 @@ const ResumeMatch = () => {
             <h3>업로드 파일</h3>
             {resumeFile ? (
               <div className="rm-file-card">
-                <div className="rm-file-icon" aria-hidden="true">📄</div>
+                <div className="rm-file-icon" aria-hidden="true">▤</div>
                 <div>
                   <strong>{resumeFile.name}</strong>
                   <span>{resumeFile.type || '문서 파일'} · {(resumeFile.size / 1024).toFixed(0)}KB</span>
@@ -289,54 +438,23 @@ const ResumeMatch = () => {
                 <input
                   type="url"
                   value={jobUrl}
-                  onChange={(e) => setJobUrl(e.target.value)}
+                  onChange={(e) => {
+                    setJobUrl(e.target.value);
+                    setJobAnalysisResult(null);
+                    setIsDetailOpen(false);
+                  }}
                   placeholder="https://www.jobsite.co.kr/jobs/12345"
                   spellCheck={false}
                 />
               </label>
 
               <div className="rm-url-action">
-                <button type="button" onClick={handleLoadJobFromUrl} disabled={isLoadingJob}>
-                  {isLoadingJob ? '불러오는 중...' : '공고 불러오기'}
+                <button type="button" onClick={handleLoadJobFromUrl} disabled={isLoadingJob || !jobUrl.trim()}>
+                  {isLoadingJob ? '분석 중...' : '공고 불러오기'}
                 </button>
               </div>
 
-              {extractedJob ? (
-                <div className={`rm-extract-summary${isDetailOpen ? ' open' : ''}`}>
-                  <strong>✓ AI 추출 완료</strong>
-                  <p>{extractedJob.targetJob} · {extractedJob.company}</p>
-                  <span>
-                    {visibleKeywords.join(' · ')}
-                    {extraKeywordCount > 0 ? ` 외 ${extraKeywordCount}개` : ''}
-                  </span>
-                  <button type="button" onClick={() => setIsDetailOpen((open) => !open)}>
-                    {isDetailOpen ? '상세 닫기' : '상세 보기'}
-                  </button>
-
-                  {isDetailOpen ? (
-                    <div className="rm-extract-detail">
-                      <h3>상세 분석 내용</h3>
-
-                      <div className="rm-keyword-block">
-                        <strong>핵심 키워드</strong>
-                        <div className="rm-keywords">
-                          {extractedJob.keywords.map((keyword) => (
-                            <span key={keyword}>{keyword}</span>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="rm-ai-note">{extractedJob.summary}</div>
-
-                      <ul>
-                        {extractedJob.details.map((detail) => (
-                          <li key={detail}>{detail}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              {renderExtractedJobCard()}
 
               <p className="rm-url-help">URL 분석이 어려운 경우 직접 입력 탭을 이용하세요.</p>
             </div>
@@ -358,7 +476,7 @@ const ResumeMatch = () => {
                 <textarea
                   value={jobDescription}
                   maxLength={MAX_JD_LENGTH}
-                  onChange={(e) => setJobDescription(e.target.value)}
+                  onChange={(e) => handleJobDescriptionChange(e.target.value)}
                   placeholder="주요 업무, 자격 요건, 우대 사항 등을 입력해 주세요."
                   spellCheck={false}
                 />
@@ -367,6 +485,18 @@ const ResumeMatch = () => {
               <div className="rm-count">
                 {jobDescription.length.toLocaleString()} / {MAX_JD_LENGTH.toLocaleString()}
               </div>
+
+              <div className="rm-manual-action">
+                <button
+                  type="button"
+                  onClick={handleAnalyzeJobDescription}
+                  disabled={isLoadingJob || !jobDescription.trim()}
+                >
+                  {isLoadingJob ? '분석 중...' : '채용공고 분석'}
+                </button>
+              </div>
+
+              {renderExtractedJobCard()}
             </div>
           )}
         </div>

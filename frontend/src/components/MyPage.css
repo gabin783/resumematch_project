@@ -129,6 +129,45 @@
     gap: 6px;
 }
 
+.job-analysis-summary {
+    margin: 0 0 12px;
+    padding: 12px 14px;
+    border: 1px solid #dce3f8;
+    border-radius: 10px;
+    background: #f7f9ff;
+    color: #34405a;
+    font-size: 0.9em;
+    line-height: 1.5;
+    font-weight: 600;
+}
+
+.job-analysis-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.required-skill-tag,
+.preferred-skill-tag {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.8em;
+    font-weight: 700;
+}
+
+.required-skill-tag {
+    border: 1px solid #cfd8ff;
+    background: #eef3ff;
+    color: #3657e8;
+}
+
+.preferred-skill-tag {
+    border: 1px solid #d8eef0;
+    background: #ecfbfb;
+    color: #138f8a;
+}
+
 .missing-skill-tag {
     background-color: #fff1f0;
     color: #cf1322;

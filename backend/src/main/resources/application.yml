@@ -8,6 +8,10 @@ youtube:
 kakao:
   client-id: ${KAKAO_CLIENT_ID:}
   redirect-uri: ${KAKAO_REDIRECT_URI:http://localhost:5173/oauth/kakao/callback}
+llm:
+  api-key: ${LLM_API_KEY:}
+  model: ${LLM_MODEL:gpt-4o-mini}
+  base-url: ${LLM_BASE_URL:https://api.openai.com/v1/chat/completions}
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver

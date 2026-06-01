@@ -2,6 +2,27 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import './MyPage.css';
 
+const parseStoredList = (value) => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+
+    const text = String(value).trim();
+    if (!text) return [];
+
+    if (text.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(text);
+            if (Array.isArray(parsed)) {
+                return parsed.map((item) => String(item).trim()).filter(Boolean);
+            }
+        } catch {
+            // Legacy records may still be comma-separated strings.
+        }
+    }
+
+    return text.split(',').map((item) => item.trim()).filter(Boolean);
+};
+
 const MyPage = () => {
     const navigate = useNavigate();
     const [profile, setProfile] = useState(null);
@@ -123,6 +144,19 @@ const MyPage = () => {
                                     <button onClick={() => handleDeleteAnalysis(result.id)} className="delete-btn" style={{ fontSize: '0.85em', marginRight: '5px' }}>삭제</button>
                                 </div>
                             </div>
+                            {result.jobSummary ? (
+                                <p className="job-analysis-summary">{result.jobSummary}</p>
+                            ) : null}
+                            {parseStoredList(result.requiredSkills).length > 0 || parseStoredList(result.preferredSkills).length > 0 ? (
+                                <div className="job-analysis-tags">
+                                    {parseStoredList(result.requiredSkills).slice(0, 4).map((skill) => (
+                                        <span key={`required-${skill}`} className="required-skill-tag">{skill}</span>
+                                    ))}
+                                    {parseStoredList(result.preferredSkills).slice(0, 3).map((skill) => (
+                                        <span key={`preferred-${skill}`} className="preferred-skill-tag">{skill}</span>
+                                    ))}
+                                </div>
+                            ) : null}
                             <div className="skill-tags-container">
                                 {result.missingSkills && result.missingSkills.split(',').map((skill, index) => (
                                     <span key={index} className="missing-skill-tag">{skill.trim()}</span>

@@ -374,6 +374,8 @@
 
 .rm-manual-panel {
   height: calc(100% - 70px);
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .rm-url-action {
@@ -383,7 +385,14 @@
   margin: 8px 0 10px;
 }
 
-.rm-url-action button {
+.rm-manual-action {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 0 10px;
+}
+
+.rm-url-action button,
+.rm-manual-action button {
   height: 38px;
   min-width: 132px;
   border: 0;
@@ -397,7 +406,8 @@
   box-shadow: 0 8px 18px rgba(79, 103, 238, 0.2);
 }
 
-.rm-url-action button:disabled {
+.rm-url-action button:disabled,
+.rm-manual-action button:disabled {
   cursor: wait;
   background: #aeb8dc;
   box-shadow: none;
@@ -550,11 +560,13 @@
 }
 
 .rm-extract-summary::-webkit-scrollbar,
+.rm-manual-panel::-webkit-scrollbar,
 .rm-skills::-webkit-scrollbar {
   width: 8px;
 }
 
 .rm-extract-summary::-webkit-scrollbar-thumb,
+.rm-manual-panel::-webkit-scrollbar-thumb,
 .rm-skills::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: #cfd8f6;

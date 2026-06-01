@@ -31,6 +31,23 @@ public class AnalysisResult {
 
     private String missingSkills; // 부족한 스킬 (콤마로 구분해서 저장)
 
+    @Column(columnDefinition = "TEXT")
+    private String requiredSkills; // 채용공고 분석 필수 스킬(JSON)
+
+    @Column(columnDefinition = "TEXT")
+    private String preferredSkills; // 채용공고 분석 우대 스킬(JSON)
+
+    @Column(columnDefinition = "TEXT")
+    private String mainTasks; // 채용공고 분석 주요 업무(JSON)
+
+    @Column(columnDefinition = "TEXT")
+    private String jobKeywords; // 채용공고 분석 핵심 키워드(JSON)
+
+    @Column(columnDefinition = "TEXT")
+    private String jobSummary; // 채용공고 분석 요약
+
+    private LocalDateTime jobAnalyzedAt;
+
     private LocalDateTime createdAt;
 
     @PrePersist
