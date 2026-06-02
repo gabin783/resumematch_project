@@ -50,6 +50,65 @@ const toSkillArray = (value) => {
   return [];
 };
 
+const parseStoredGapReport = (data) => {
+  if (!data?.analysis || typeof data.analysis !== 'string') {
+    return null;
+  }
+
+  const trimmed = data.analysis.trim();
+  if (!trimmed.startsWith('{')) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return {
+      ...parsed,
+      analysis: parsed.analysis || '',
+    };
+  } catch {
+    return null;
+  }
+};
+
+const toSkillScoreArray = (value, fallbackScores = []) => {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => {
+        if (typeof item === 'string') {
+          return {
+            name: item.trim(),
+            score: fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
+            reason: '',
+            evidence: '',
+            priority: 'medium',
+          };
+        }
+
+        return {
+          name: item?.name || item?.skill || item?.title || '',
+          score: Number.isFinite(Number(item?.score))
+            ? Math.max(0, Math.min(Number(item.score), 100))
+            : fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
+          reason: item?.reason || '',
+          evidence: item?.evidence || '',
+          priority: item?.priority || 'medium',
+        };
+      })
+      .filter((item) => item.name);
+  }
+
+  return toSkillArray(value).map((skill, index) => ({
+    name: skill,
+    score: fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
+    reason: '',
+    evidence: '',
+    priority: 'medium',
+  }));
+};
+
 const splitTextLines = (value) => {
   if (!value || typeof value !== 'string') return [];
 
@@ -88,10 +147,7 @@ const getScoreLabel = (score) => {
 };
 
 const buildProgressItems = (skills, baseScores) =>
-  skills.slice(0, 5).map((skill, index) => ({
-    name: skill,
-    score: baseScores[index] ?? baseScores[baseScores.length - 1],
-  }));
+  toSkillScoreArray(skills, baseScores).slice(0, 5);
 
 const ResultPage = () => {
   const location = useLocation();
@@ -111,49 +167,66 @@ const ResultPage = () => {
   const report = useMemo(() => {
     if (!resultData) return null;
 
-    const missingSkills = toSkillArray(resultData.missingSkills);
+    const storedGapReport = parseStoredGapReport(resultData);
+    const sourceData = storedGapReport
+      ? {
+          ...resultData,
+          ...storedGapReport,
+          learningDirection: storedGapReport.learningDirection || resultData.learningDirection,
+        }
+      : resultData;
+
+    const missingSkillScores = toSkillScoreArray(sourceData.missingSkills, [30, 25, 35, 30, 45]);
+    const matchedSkillScores = toSkillScoreArray(sourceData.matchedSkills, [90, 85, 80, 75, 70]);
+    const partialSkillScores = toSkillScoreArray(sourceData.partialSkills, [60, 58, 55, 52, 50]);
+    const ownedSkillScores = toSkillScoreArray(sourceData.ownedSkills, [85, 80, 75, 70, 65]);
+    const missingSkills = missingSkillScores.map((item) => item.name);
     const matchedSkills =
-      toSkillArray(resultData.matchedSkills).length > 0
-        ? toSkillArray(resultData.matchedSkills)
+      matchedSkillScores.length > 0
+        ? matchedSkillScores.map((item) => item.name)
         : defaultMatchedSkills;
     const partialSkills =
-      toSkillArray(resultData.partialSkills).length > 0
-        ? toSkillArray(resultData.partialSkills)
+      partialSkillScores.length > 0
+        ? partialSkillScores.map((item) => item.name)
         : defaultPartialSkills;
     const needSkills = missingSkills.length > 0 ? missingSkills : defaultNeedSkills;
     const ownedSkills =
-      toSkillArray(resultData.ownedSkills).length > 0
-        ? toSkillArray(resultData.ownedSkills)
-        : toSkillArray(resultData.resumeSkills).length > 0
-          ? toSkillArray(resultData.resumeSkills)
+      ownedSkillScores.length > 0
+        ? ownedSkillScores.map((item) => item.name)
+        : toSkillArray(sourceData.resumeSkills).length > 0
+          ? toSkillArray(sourceData.resumeSkills)
           : defaultOwnedSkills;
 
-    const learningLines = splitTextLines(resultData.learningDirection);
-    const jobRequiredSkills = toSkillArray(resultData.requiredSkills);
-    const jobPreferredSkills = toSkillArray(resultData.preferredSkills);
-    const jobMainTasks = toSkillArray(resultData.mainTasks);
-    const jobKeywords = toSkillArray(resultData.jobKeywords || resultData.keywords);
-    const jobSummary = resultData.jobSummary || resultData.summary || '';
+    const learningLines = splitTextLines(sourceData.learningDirection);
+    const jobRequiredSkills = toSkillArray(sourceData.requiredSkills);
+    const jobPreferredSkills = toSkillArray(sourceData.preferredSkills);
+    const jobMainTasks = toSkillArray(sourceData.mainTasks);
+    const jobKeywords = toSkillArray(sourceData.jobKeywords || sourceData.keywords);
+    const jobSummary = sourceData.jobSummary || sourceData.summary || '';
     const roadmapItems =
       learningLines.length > 0
         ? learningLines.slice(0, 3)
         : needSkills.slice(0, 3).map((skill) => `${skill} 학습`);
 
     return {
-      score: getScore(resultData),
-      targetJob: resultData.targetJob || resultData.jobTitle || resultData.position || '데이터 분석가',
+      score: getScore(sourceData),
+      targetJob: sourceData.targetJob || sourceData.jobTitle || sourceData.position || '데이터 분석가',
       analysis:
-        resultData.analysis ||
+        sourceData.analysis ||
         '이력서와 채용공고를 비교한 결과, 일부 핵심 역량은 잘 맞지만 추가 보완이 필요한 스킬이 있습니다.',
       learningDirection:
-        resultData.learningDirection ||
+        sourceData.learningDirection ||
         '부족한 핵심 스킬을 우선순위에 따라 학습하면 직무 적합도를 높일 수 있습니다.',
       missingSkills,
       matchedSkills,
       partialSkills,
       needSkills,
-      ownedProgress: buildProgressItems(ownedSkills, [85, 80, 75, 70, 65]),
-      missingProgress: buildProgressItems(needSkills, [30, 25, 35, 30, 45]),
+      ownedProgress: ownedSkillScores.length > 0
+        ? ownedSkillScores.slice(0, 5)
+        : buildProgressItems(ownedSkills, [85, 80, 75, 70, 65]),
+      missingProgress: missingSkillScores.length > 0
+        ? missingSkillScores.slice(0, 5)
+        : buildProgressItems(needSkills, [30, 25, 35, 30, 45]),
       roadmapItems,
       jobRequiredSkills,
       jobPreferredSkills,
@@ -222,12 +295,12 @@ const ResultPage = () => {
         levelLabel: isMissing ? '부족도' : '보유도',
         level: item.score,
         jdRequirement: `${report.targetJob} 공고에서 ${item.name} 관련 실무 활용 경험을 요구합니다.`,
-        resumeEvidence: isMissing
+        resumeEvidence: item.evidence || (isMissing
           ? `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`
-          : `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`,
-        recommendation: isMissing
+          : `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`),
+        recommendation: item.reason || (isMissing
           ? `${item.name} 기초 개념을 정리한 뒤 작은 실습 프로젝트로 사용 근거를 보완하세요.`
-          : `${item.name} 강점을 유지하면서 JD 키워드와 연결되는 성과 표현을 구체화하세요.`,
+          : `${item.name} 강점을 유지하면서 JD 키워드와 연결되는 성과 표현을 구체화하세요.`),
       })),
     });
   };

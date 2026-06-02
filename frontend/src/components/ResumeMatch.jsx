@@ -287,6 +287,10 @@ const ResumeMatch = () => {
         `${API_BASE_URL}/gap-match`,
         {
           resumeSkills: parsedResumeData.skills,
+          technicalSkills: parsedResumeData.technicalSkills || [],
+          resumeKeywords: parsedResumeData.keywords || [],
+          experienceSummary: parsedResumeData.experienceSummary || '',
+          recommendedJobTypes: parsedResumeData.recommendedJobTypes || [],
           jdText: currentJobDescription,
           targetJob,
           requiredSkills: jobAnalysisResult?.requiredSkills || [],

@@ -9,7 +9,7 @@ import com.resumematch.entity.Resume;
 import com.resumematch.repository.AnalysisResultRepository;
 import com.resumematch.repository.ResumeRepository;
 import com.resumematch.service.FileParsingService;
-import com.resumematch.service.OllamaAiService;
+import com.resumematch.service.GapLlmAnalyzeService;
 import com.resumematch.service.ResumeLlmAnalyzeService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/resume")
@@ -39,7 +40,7 @@ public class ResumeController {
 
     private final FileParsingService fileParsingService;
     private final ResumeLlmAnalyzeService resumeLlmAnalyzeService;
-    private final OllamaAiService ollamaAiService;
+    private final GapLlmAnalyzeService gapLlmAnalyzeService;
     private final ResumeRepository resumeRepository;
     private final AnalysisResultRepository analysisResultRepository;
 
@@ -75,27 +76,20 @@ public class ResumeController {
 
             List<String> resumeSkillsList = Arrays.asList(latestResume.getSkills().split(","));
 
-            String jsonResponse = ollamaAiService.analyzeGapWithGemma(
-                    resumeSkillsList,
-                    requestDto.getJdText(),
-                    requestDto.getTargetJob()
-            );
-
-            jsonResponse = jsonResponse.replace("```json", "").replace("```", "").trim();
             ObjectMapper objectMapper = new ObjectMapper();
-            GapMatchResponse response = objectMapper.readValue(jsonResponse, GapMatchResponse.class);
+            GapMatchResponse response = gapLlmAnalyzeService.analyze(resumeSkillsList, requestDto);
 
             AnalysisResult resultEntity = AnalysisResult.builder()
-                    .targetJob(requestDto.getTargetJob())
+                    .targetJob(response.getTargetJob())
                     .jdText(requestDto.getJdText())
-                    .analysis(response.getAnalysis())
+                    .analysis(toJson(objectMapper, response))
                     .learningDirection(response.getLearningDirection())
-                    .missingSkills(response.getMissingSkills() != null ? String.join(",", response.getMissingSkills()) : "")
-                    .requiredSkills(toJson(objectMapper, requestDto.getRequiredSkills()))
-                    .preferredSkills(toJson(objectMapper, requestDto.getPreferredSkills()))
-                    .mainTasks(toJson(objectMapper, requestDto.getMainTasks()))
-                    .jobKeywords(toJson(objectMapper, requestDto.getKeywords()))
-                    .jobSummary(requestDto.getSummary())
+                    .missingSkills(joinSkillNames(response.getMissingSkills()))
+                    .requiredSkills(toJson(objectMapper, response.getRequiredSkills()))
+                    .preferredSkills(toJson(objectMapper, response.getPreferredSkills()))
+                    .mainTasks(toJson(objectMapper, response.getMainTasks()))
+                    .jobKeywords(toJson(objectMapper, response.getJobKeywords()))
+                    .jobSummary(response.getJobSummary())
                     .jobAnalyzedAt(hasJobAnalysis(requestDto) ? LocalDateTime.now() : null)
                     .build();
 
@@ -118,6 +112,29 @@ public class ResumeController {
             log.warn("Failed to serialize list to JSON. Fallback to comma-separated text.", e);
             return String.join(",", values);
         }
+    }
+
+    private String toJson(ObjectMapper objectMapper, GapMatchResponse response) {
+        try {
+            return objectMapper.writeValueAsString(response);
+        } catch (Exception e) {
+            log.warn("Failed to serialize gap response to JSON. Fallback to analysis text.", e);
+            return response.getAnalysis();
+        }
+    }
+
+    private String joinSkillNames(List<com.resumematch.dto.SkillScoreDto> values) {
+        if (values == null) {
+            return "";
+        }
+
+        return values.stream()
+                .map(com.resumematch.dto.SkillScoreDto::getName)
+                .filter(Objects::nonNull)
+                .filter(name -> !name.trim().isEmpty())
+                .distinct()
+                .reduce((left, right) -> left + "," + right)
+                .orElse("");
     }
 
     private boolean hasJobAnalysis(GapMatchRequest requestDto) {

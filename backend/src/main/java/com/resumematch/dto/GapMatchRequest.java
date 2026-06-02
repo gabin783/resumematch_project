@@ -8,6 +8,10 @@ import java.util.List;
 @Setter
 public class GapMatchRequest {
     private List<String> resumeSkills;
+    private List<String> technicalSkills;
+    private List<String> resumeKeywords;
+    private String experienceSummary;
+    private List<String> recommendedJobTypes;
     private String jdText;
     private String targetJob;
     private List<String> requiredSkills;
