@@ -83,18 +83,22 @@ const toSkillScoreArray = (value, fallbackScores = []) => {
             score: fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
             reason: '',
             evidence: '',
-            priority: 'medium',
+            priority: '',
+            hasScore: false,
           };
         }
 
+        const hasScore = Number.isFinite(Number(item?.score));
+
         return {
           name: item?.name || item?.skill || item?.title || '',
-          score: Number.isFinite(Number(item?.score))
+          score: hasScore
             ? Math.max(0, Math.min(Number(item.score), 100))
             : fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
           reason: item?.reason || '',
           evidence: item?.evidence || '',
-          priority: item?.priority || 'medium',
+          priority: item?.priority || '',
+          hasScore,
         };
       })
       .filter((item) => item.name);
@@ -105,7 +109,8 @@ const toSkillScoreArray = (value, fallbackScores = []) => {
     score: fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
     reason: '',
     evidence: '',
-    priority: 'medium',
+    priority: '',
+    hasScore: false,
   }));
 };
 
@@ -144,6 +149,32 @@ const getScoreLabel = (score) => {
   if (score >= 70) return '보통';
   if (score >= 50) return '보완 필요';
   return '집중 보완';
+};
+
+const normalizeSkillName = (skill) => String(skill || '').trim().toLowerCase();
+
+const hasSkill = (skills, targetSkill) => {
+  const normalizedTarget = normalizeSkillName(targetSkill);
+  return skills.some((skill) => normalizeSkillName(skill) === normalizedTarget);
+};
+
+const getOwnedSkillStatus = (item) => {
+  if (!item?.hasScore) return '보유';
+  if (item.score >= 85) return '강점';
+  if (item.score >= 70) return '보유';
+  if (item.score >= 50) return '관련 경험';
+  return '관련 경험';
+};
+
+const getMissingSkillStatus = (item, requiredSkills = [], preferredSkills = []) => {
+  const priority = String(item?.priority || '').toLowerCase();
+
+  if (priority === 'high') return '필수 보완';
+  if (priority === 'medium') return '우선 학습';
+  if (priority === 'low') return '추가 학습';
+  if (hasSkill(requiredSkills, item?.name)) return '필수 보완';
+  if (hasSkill(preferredSkills, item?.name)) return '추가 학습';
+  return '우선 학습';
 };
 
 const buildProgressItems = (skills, baseScores) =>
@@ -207,6 +238,20 @@ const ResultPage = () => {
       learningLines.length > 0
         ? learningLines.slice(0, 3)
         : needSkills.slice(0, 3).map((skill) => `${skill} 학습`);
+    const rawOwnedProgress = ownedSkillScores.length > 0
+      ? ownedSkillScores.slice(0, 5)
+      : buildProgressItems(ownedSkills, [85, 80, 75, 70, 65]);
+    const rawMissingProgress = missingSkillScores.length > 0
+      ? missingSkillScores.slice(0, 5)
+      : buildProgressItems(needSkills, [30, 25, 35, 30, 45]);
+    const ownedProgress = rawOwnedProgress.map((item) => ({
+      ...item,
+      statusLabel: getOwnedSkillStatus(item),
+    }));
+    const missingProgress = rawMissingProgress.map((item) => ({
+      ...item,
+      statusLabel: getMissingSkillStatus(item, jobRequiredSkills, jobPreferredSkills),
+    }));
 
     return {
       score: getScore(sourceData),
@@ -221,12 +266,8 @@ const ResultPage = () => {
       matchedSkills,
       partialSkills,
       needSkills,
-      ownedProgress: ownedSkillScores.length > 0
-        ? ownedSkillScores.slice(0, 5)
-        : buildProgressItems(ownedSkills, [85, 80, 75, 70, 65]),
-      missingProgress: missingSkillScores.length > 0
-        ? missingSkillScores.slice(0, 5)
-        : buildProgressItems(needSkills, [30, 25, 35, 30, 45]),
+      ownedProgress,
+      missingProgress,
       roadmapItems,
       jobRequiredSkills,
       jobPreferredSkills,
@@ -293,6 +334,16 @@ const ResultPage = () => {
 
       return `${evidence}\n${reason}`;
     };
+    const buildMissingEvidence = (item) => {
+      const evidence = item.evidence || `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`;
+      const reason = item.reason || `${report.targetJob} 공고에서 ${item.name} 역량이 필요하지만 이력서 근거가 부족합니다.`;
+
+      if (evidence.length >= 55 || evidence.includes('\n')) {
+        return evidence;
+      }
+
+      return `${evidence}\n${reason}`;
+    };
 
     setDetailModal({
       type,
@@ -302,15 +353,11 @@ const ResultPage = () => {
         : '이력서에서 확인된 강점 역량입니다.',
       items: source.map((item) => ({
         name: item.name,
-        levelLabel: isMissing ? '부족도' : '보유도',
-        level: item.score,
+        statusLabel: item.statusLabel,
         jdRequirement: `${report.targetJob} 공고에서 ${item.name} 관련 실무 활용 경험을 요구합니다.`,
         resumeEvidence: isMissing
-          ? item.evidence || `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`
+          ? buildMissingEvidence(item)
           : buildOwnedEvidence(item),
-        recommendation: isMissing
-          ? item.reason || `${item.name} 기초 개념을 정리한 뒤 작은 실습 프로젝트로 사용 근거를 보완하세요.`
-          : '',
       })),
     });
   };
@@ -447,10 +494,7 @@ const ResultPage = () => {
               <div className="progress-item blue" key={item.name}>
                 <div>
                   <span>{item.name}</span>
-                  <strong>{item.score}%</strong>
-                </div>
-                <div className="progress-track">
-                  <span style={{ width: `${item.score}%` }} />
+                  <strong className="skill-status-badge">{item.statusLabel}</strong>
                 </div>
               </div>
             ))}
@@ -471,10 +515,7 @@ const ResultPage = () => {
               <div className="progress-item red" key={item.name}>
                 <div>
                   <span>{item.name}</span>
-                  <strong>{item.score}%</strong>
-                </div>
-                <div className="progress-track">
-                  <span style={{ width: `${item.score}%` }} />
+                  <strong className="skill-status-badge">{item.statusLabel}</strong>
                 </div>
               </div>
             ))}
@@ -537,7 +578,7 @@ const ResultPage = () => {
                   <div className="skill-detail-top">
                     <h3>{item.name}</h3>
                     <span className={detailModal.type === 'missing' ? 'danger' : 'primary'}>
-                      {item.levelLabel} {item.level}%
+                      {item.statusLabel}
                     </span>
                   </div>
 
@@ -547,15 +588,9 @@ const ResultPage = () => {
                       <dd>{item.jdRequirement}</dd>
                     </div>
                     <div>
-                      <dt>이력서 근거</dt>
+                      <dt>{detailModal.type === 'missing' ? '이력서 분석 근거' : '이력서 근거'}</dt>
                       <dd>{item.resumeEvidence}</dd>
                     </div>
-                    {detailModal.type === 'missing' ? (
-                      <div>
-                        <dt>보완 학습 추천</dt>
-                        <dd>{item.recommendation}</dd>
-                      </div>
-                    ) : null}
                   </dl>
                 </article>
               ))}

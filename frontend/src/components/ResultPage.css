@@ -274,48 +274,61 @@
   padding-right: 3px;
 }
 
-.progress-item > div:first-child {
+.progress-item {
+  min-height: 42px;
   display: flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.progress-item.blue {
+  border: 1px solid #e1e7ff;
+}
+
+.progress-item.red {
+  border: 1px solid #ffe1e1;
+  background: #fffafa;
+}
+
+.progress-item > div:first-child {
+  width: 100%;
+  display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 5px;
+  margin-bottom: 0;
   color: #6b7280;
   font-size: 13px;
   font-weight: 700;
 }
 
-.progress-item strong {
-  color: #4f67ee;
-  font-size: 14px;
-}
-
-.progress-item.red strong {
-  color: #ef4444;
-}
-
-.progress-track {
-  height: 9px;
+.progress-item > div:first-child > span {
+  min-width: 0;
+  color: #4b5563;
+  font-weight: 800;
   overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progress-item .skill-status-badge {
+  min-height: 26px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0 10px;
   border-radius: 999px;
-  background: #e5e7eb;
+  color: #4f67ee;
+  background: #eef3ff;
+  font-size: 12px;
+  font-weight: 900;
 }
 
-.progress-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-}
-
-.progress-item.blue .progress-track span {
-  background: #4f67ee;
-}
-
-.progress-item.red .progress-track {
-  background: #fde2e2;
-}
-
-.progress-item.red .progress-track span {
-  background: #ef4444;
+.progress-item.red .skill-status-badge {
+  color: #ef4444;
+  background: #fff1f1;
 }
 
 .roadmap-card {

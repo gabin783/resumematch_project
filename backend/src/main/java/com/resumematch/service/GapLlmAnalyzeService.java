@@ -229,7 +229,9 @@ public class GapLlmAnalyzeService {
                 - ownedSkills evidence가 너무 짧은 단어 나열로 끝나지 않게 하세요.
                 - ownedSkills에는 recommendation 필드가 필요하지 않습니다. reason/evidence에 판단 근거를 충분히 담으세요.
                 - missingSkills reason에는 JD에서 왜 필요한지 작성하세요.
-                - missingSkills evidence에는 이력서에서 부족하다고 판단한 근거를 작성하세요.
+                - missingSkills evidence에는 이력서에서 부족하다고 판단한 근거를 1~2문장으로 구체적으로 작성하세요.
+                - missingSkills evidence가 두 문장이라면 문장 사이에 줄바꿈 문자 \\n을 넣어 읽기 쉽게 작성하세요.
+                - missingSkills evidence를 "경험이 없습니다" 같은 짧은 문장 하나로 끝내지 마세요.
                 - recommendation이라는 필드는 만들지 마세요. 학습/강화 방향은 reason에 한 문장으로 자연스럽게 포함하세요.
 
                 - ownedSkills, matchedSkills, partialSkills, missingSkills의 score도 0~100 사이 정수로 작성하세요.
