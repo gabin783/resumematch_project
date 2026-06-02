@@ -6,6 +6,7 @@ import './ResumeMatch.css';
 const API_BASE_URL = 'http://localhost:8080/api/resume';
 const JOB_ANALYZE_API_URL = 'http://localhost:8080/api/job/analyze';
 const MAX_JD_LENGTH = 5000;
+const RESUME_SKILL_LIMIT = 10;
 
 const steps = [
   '이력서 업로드',
@@ -65,9 +66,15 @@ const ResumeMatch = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isResumeSkillsExpanded, setIsResumeSkillsExpanded] = useState(false);
 
   const isResumeCompleted = Boolean(parsedResumeData?.skills?.length);
   const isJobCompleted = Boolean(jobAnalysisResult);
+  const resumeSkills = parsedResumeData?.skills || [];
+  const visibleResumeSkills = isResumeSkillsExpanded
+    ? resumeSkills
+    : resumeSkills.slice(0, RESUME_SKILL_LIMIT);
+  const hiddenResumeSkillCount = resumeSkills.length - visibleResumeSkills.length;
 
   const canAnalyze =
     isResumeCompleted &&
@@ -116,6 +123,7 @@ const ResumeMatch = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       setParsedResumeData(response.data);
+      setIsResumeSkillsExpanded(false);
     } catch (error) {
       console.error('이력서 파싱 오류:', error);
       alert('이력서 파싱에 실패했습니다. 백엔드 서버 상태를 확인해주세요.');
@@ -129,6 +137,7 @@ const ResumeMatch = () => {
   const resetFile = () => {
     setResumeFile(null);
     setParsedResumeData(null);
+    setIsResumeSkillsExpanded(false);
   };
 
   const handleModeChange = (mode) => {
@@ -399,11 +408,30 @@ const ResumeMatch = () => {
             )}
           </div>
 
-          {parsedResumeData?.skills?.length ? (
+          {resumeSkills.length ? (
             <div className="rm-skills">
-              {parsedResumeData.skills.slice(0, 12).map((skill) => (
+              {visibleResumeSkills.map((skill) => (
                 <span key={skill}>{skill}</span>
               ))}
+              {!isResumeSkillsExpanded && hiddenResumeSkillCount > 0 ? (
+                <button
+                  type="button"
+                  className="rm-skill-toggle"
+                  onClick={() => setIsResumeSkillsExpanded(true)}
+                  aria-label={`숨겨진 스킬 ${hiddenResumeSkillCount}개 더 보기`}
+                >
+                  +{hiddenResumeSkillCount}
+                </button>
+              ) : null}
+              {isResumeSkillsExpanded && resumeSkills.length > RESUME_SKILL_LIMIT ? (
+                <button
+                  type="button"
+                  className="rm-skill-toggle"
+                  onClick={() => setIsResumeSkillsExpanded(false)}
+                >
+                  접기
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

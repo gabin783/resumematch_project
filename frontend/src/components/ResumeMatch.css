@@ -78,18 +78,18 @@
   gap: 26px;
   max-width: 1040px;
   margin: 0 auto;
-  align-items: stretch;
+  align-items: start;
 }
 
 .rm-panel {
   min-width: 0;
-  height: clamp(436px, 52svh, 500px);
+  min-height: 0;
   padding: 17px;
   border: 1px solid #d7dce9;
   border-radius: 12px;
   background: #fff;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .rm-panel-header {
@@ -256,12 +256,14 @@
   flex-wrap: wrap;
   gap: 7px;
   margin-top: 10px;
-  max-height: 84px;
-  overflow-y: auto;
-  padding-right: 2px;
+  overflow: visible;
 }
 
-.rm-skills span {
+.rm-skills span,
+.rm-skill-toggle {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
   padding: 6px 10px;
   border: 1px solid #d6def8;
   border-radius: 999px;
@@ -269,6 +271,20 @@
   color: #4d67e8;
   font-size: 12px;
   font-weight: 700;
+}
+
+.rm-skill-toggle {
+  background: #eef4ff;
+  color: #3146c8;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.rm-skill-toggle:hover {
+  border-color: #9fb0ff;
+  background: #e5ebff;
 }
 
 .rm-field {
@@ -308,9 +324,10 @@
 }
 
 .rm-field textarea {
-  height: clamp(314px, 38svh, 378px);
+  min-height: 280px;
+  height: 300px;
   padding: 14px;
-  resize: none;
+  resize: vertical;
 }
 
 .rm-field input:focus,
@@ -367,15 +384,12 @@
 .rm-url-panel {
   display: flex;
   min-height: 0;
-  height: calc(100% - 70px);
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .rm-manual-panel {
-  height: calc(100% - 70px);
-  overflow-y: auto;
-  padding-right: 2px;
+  overflow: visible;
 }
 
 .rm-url-action {
@@ -415,12 +429,8 @@
 
 .rm-extract-summary {
   display: grid;
-  flex-shrink: 0;
   gap: 7px;
-  height: clamp(156px, 18svh, 180px);
-  min-height: clamp(156px, 18svh, 180px);
-  max-height: clamp(156px, 18svh, 180px);
-  overflow-y: auto;
+  overflow: visible;
   padding: 15px 16px;
   border: 1px solid #d7dce9;
   border-radius: 12px;
@@ -428,10 +438,7 @@
 }
 
 .rm-extract-summary.open {
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 0;
-  max-height: none;
+  overflow: visible;
 }
 
 .rm-extract-summary strong {
@@ -559,19 +566,6 @@
   font-size: 13px;
 }
 
-.rm-extract-summary::-webkit-scrollbar,
-.rm-manual-panel::-webkit-scrollbar,
-.rm-skills::-webkit-scrollbar {
-  width: 8px;
-}
-
-.rm-extract-summary::-webkit-scrollbar-thumb,
-.rm-manual-panel::-webkit-scrollbar-thumb,
-.rm-skills::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #cfd8f6;
-}
-
 .rm-action-bar {
   position: sticky;
   bottom: 0;
@@ -652,16 +646,18 @@
 
   .rm-panel {
     height: auto;
-    min-height: 480px;
+    min-height: 0;
   }
 
   .rm-url-panel,
   .rm-manual-panel {
     height: auto;
+    overflow: visible;
   }
 
   .rm-field textarea {
-    height: 230px;
+    min-height: 240px;
+    height: 260px;
   }
 
   .rm-analyze-button {
@@ -675,28 +671,12 @@
 }
 
 @media (min-width: 821px) and (min-height: 760px) {
-  .rm-panel {
-    height: clamp(480px, 60svh, 560px);
-  }
-
   .rm-dropzone {
     min-height: clamp(112px, 14svh, 140px);
   }
 
   .rm-field textarea {
-    height: clamp(358px, 46svh, 438px);
-  }
-
-  .rm-extract-summary {
-    height: clamp(190px, 24svh, 230px);
-    min-height: clamp(190px, 24svh, 230px);
-    max-height: clamp(190px, 24svh, 230px);
-  }
-
-  .rm-extract-summary.open {
-    flex: 1 1 auto;
-    height: auto;
-    min-height: 0;
-    max-height: none;
+    min-height: 300px;
+    height: 320px;
   }
 }
