@@ -283,6 +283,16 @@ const ResultPage = () => {
     const isMissing = type === 'missing';
     const source = isMissing ? report.missingProgress : report.ownedProgress;
     const title = isMissing ? '부족 스킬 상세' : '보유 스킬 상세';
+    const buildOwnedEvidence = (item) => {
+      const evidence = item.evidence || `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`;
+      const reason = item.reason || `${item.name}은 ${report.targetJob} 직무와 연결되는 핵심 보유 역량입니다.`;
+
+      if (evidence.length >= 55 || evidence.includes('\n')) {
+        return evidence;
+      }
+
+      return `${evidence}\n${reason}`;
+    };
 
     setDetailModal({
       type,
@@ -295,12 +305,12 @@ const ResultPage = () => {
         levelLabel: isMissing ? '부족도' : '보유도',
         level: item.score,
         jdRequirement: `${report.targetJob} 공고에서 ${item.name} 관련 실무 활용 경험을 요구합니다.`,
-        resumeEvidence: item.evidence || (isMissing
-          ? `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`
-          : `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`),
-        recommendation: item.reason || (isMissing
-          ? `${item.name} 기초 개념을 정리한 뒤 작은 실습 프로젝트로 사용 근거를 보완하세요.`
-          : `${item.name} 강점을 유지하면서 JD 키워드와 연결되는 성과 표현을 구체화하세요.`),
+        resumeEvidence: isMissing
+          ? item.evidence || `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`
+          : buildOwnedEvidence(item),
+        recommendation: isMissing
+          ? item.reason || `${item.name} 기초 개념을 정리한 뒤 작은 실습 프로젝트로 사용 근거를 보완하세요.`
+          : '',
       })),
     });
   };
@@ -540,10 +550,12 @@ const ResultPage = () => {
                       <dt>이력서 근거</dt>
                       <dd>{item.resumeEvidence}</dd>
                     </div>
-                    <div>
-                      <dt>보완 학습 추천</dt>
-                      <dd>{item.recommendation}</dd>
-                    </div>
+                    {detailModal.type === 'missing' ? (
+                      <div>
+                        <dt>보완 학습 추천</dt>
+                        <dd>{item.recommendation}</dd>
+                      </div>
+                    ) : null}
                   </dl>
                 </article>
               ))}

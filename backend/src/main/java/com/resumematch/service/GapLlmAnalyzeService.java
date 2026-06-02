@@ -166,9 +166,14 @@ public class GapLlmAnalyzeService {
                 - JSON 외의 설명, 마크다운, 코드블록은 절대 포함하지 마세요.
                 - requiredSkills를 가장 중요하게 평가하세요.
                 - resumeSkills에 명시된 기술은 절대 missingSkills로 분류하지 마세요.
-                - JD 요구사항에 있고 resumeSkills에도 있으면 matchedSkills로 분류하세요.
+                - resumeSkills에 Docker가 있으면 Docker는 missingSkills가 아니라 matchedSkills 또는 partialSkills입니다.
+                - resumeSkills에 AWS EC2, S3, Lambda 등 AWS 세부 기술이 있으면 AWS는 missingSkills가 아니라 matchedSkills 또는 partialSkills입니다.
+                - resumeSkills에 GitHub Actions가 있으면 GitHub Actions는 missingSkills가 아니라 matchedSkills 또는 partialSkills입니다.
+                - JD 요구사항에 있고 resumeSkills에도 있으면 matchedSkills 또는 partialSkills로 분류하세요.
+                - JD 요구사항과 resumeSkills가 직접 일치하고 프로젝트/경력 근거가 명확하면 matchedSkills로 분류하세요.
                 - JD 요구사항에 있고 resumeSkills에는 없지만 관련 기술, 유사 경험, 같은 계열의 프레임워크/도구 경험이 있으면 partialSkills로 분류하세요.
                 - JD 요구사항에 있고 resumeSkills 및 관련 경험이 모두 없을 때만 missingSkills로 분류하세요.
+                - 기술 스택에 명시되어 있지만 경험 깊이가 부족한 경우는 missingSkills가 아니라 partialSkills로 분류하세요.
                 - 실무 경험의 깊이가 부족한 경우에는 missingSkills가 아니라 partialSkills로 분류하고 score를 50~70 사이로 주세요.
                 - missingSkills에는 정말 이력서에서 확인되지 않는 기술만 넣으세요.
                 - 비슷한 경험이나 관련 기술은 partialSkills에 넣으세요.
@@ -177,12 +182,56 @@ public class GapLlmAnalyzeService {
                 - ownedSkills에는 이력서 보유 기술 중 핵심 기술을 최소 5개, 최대 8개 넣으세요.
                 - ownedSkills는 구체적인 기술명만 사용하세요. 예: Java, Spring Boot, JPA, MySQL, REST API, Git, Docker, AWS.
                 - ownedSkills에는 백엔드 개발, 풀스택 개발, 협업, 문제 해결 같은 직무명/추상 역량을 넣지 마세요.
-                - missingSkills의 score는 모두 같은 값으로 쓰지 마세요.
-                - missingSkills score는 부족 정도와 우선순위에 따라 20~60 사이에서 다르게 작성하세요.
-                - 중요하고 근거가 거의 없는 기술은 20~35, 일부 관련 경험이 있는 기술은 40~60으로 작성하세요.
+
+                ownedSkills 점수 기준:
+                - ownedSkills score는 보유도 기준입니다. 모두 같은 값이나 전부 80으로 쓰지 마세요.
+                - 이력서 기술 스택에 명시되어 있고 프로젝트/경력에서도 사용 근거가 있으면 85~95를 주세요.
+                - 기술 스택에 명시되어 있지만 구체 사용 근거가 약하면 70~84를 주세요.
+                - 관련 경험은 있으나 직접 기술명이 약하면 55~69를 주세요.
+                - 단순 언급 수준이면 40~54를 주세요.
+                - 예: Java 90, Spring Boot 88, REST API 82, JPA 75, Git 70처럼 자연스럽게 분산하세요.
+
+                matchedSkills 기준:
+                - matchedSkills는 JD 요구 기술과 resumeSkills가 직접 일치하거나 이력서 프로젝트/경력에서 해당 기술 사용 근거가 명확할 때만 사용하세요.
+                - matchedSkills score는 75~95 사이로 주세요.
+                - 핵심 필수 기술일수록 높은 점수를 주세요.
+
+                partialSkills 기준:
+                - partialSkills는 이력서에 관련 기술은 있으나 JD 요구 기술과 정확히 일치하지 않을 때 사용하세요.
+                - resumeSkills에 기술명은 있지만 프로젝트/경력 근거가 약할 때 사용하세요.
+                - 유사 기술 경험은 있으나 직접 경험이 부족할 때 사용하세요.
+                - partialSkills score는 50~75 사이로, missingSkills보다 높고 matchedSkills보다 낮게 설정하세요.
+
+                missingSkills 점수 기준:
+                - missingSkills score는 부족도가 아니라 보유도 기준입니다. 낮을수록 더 부족합니다.
+                - missingSkills score는 모두 같은 값으로 쓰지 마세요.
+                - 이력서에 전혀 없고 관련 경험도 없으면 10~25를 주세요.
+                - 관련 개념은 있으나 해당 기술명/경험이 없으면 26~45를 주세요.
+                - 유사 기술 경험은 있으나 JD 요구 기술과 직접 일치하지 않으면 46~60을 주세요.
+                - missingSkills에는 70점 이상을 주지 마세요.
                 - missingSkills priority가 high이면 낮은 score를, low이면 상대적으로 높은 score를 부여하세요.
+
+                matchScore 기준:
                 - matchScore는 0~100 사이 정수이며 너무 후하게 주지 마세요.
                 - 필수 스킬 직접 일치는 1점, 부분 일치는 0.5점, 미보유는 0점 기준으로 판단하고 우대 스킬 일치는 보너스로만 반영하세요.
+                - requiredSkills 직접 일치가 가장 큰 영향을 줍니다.
+                - partialSkills는 절반 정도만 반영하세요.
+                - preferredSkills는 보너스 정도로만 반영하세요.
+                - missingSkills가 많으면 점수를 낮게 주세요.
+                - 프론트엔드 이력서로 백엔드 JD를 분석하면 30~50점대가 자연스럽습니다.
+                - 백엔드 이력서로 백엔드 JD를 분석하면 65~85점대가 자연스럽습니다.
+
+                reason/evidence 작성 기준:
+                - 각 스킬 항목의 reason, evidence 문장을 반복적으로 만들지 마세요.
+                - ownedSkills reason에는 왜 JD 요구사항과 잘 맞는지 작성하세요.
+                - ownedSkills evidence에는 이력서의 기술 스택, 프로젝트, 경력 중 어떤 부분이 근거인지 1~2문장으로 구체적으로 작성하세요.
+                - ownedSkills evidence가 두 문장이라면 문장 사이에 줄바꿈 문자 \\n을 넣어 읽기 쉽게 작성하세요.
+                - ownedSkills evidence가 너무 짧은 단어 나열로 끝나지 않게 하세요.
+                - ownedSkills에는 recommendation 필드가 필요하지 않습니다. reason/evidence에 판단 근거를 충분히 담으세요.
+                - missingSkills reason에는 JD에서 왜 필요한지 작성하세요.
+                - missingSkills evidence에는 이력서에서 부족하다고 판단한 근거를 작성하세요.
+                - recommendation이라는 필드는 만들지 마세요. 학습/강화 방향은 reason에 한 문장으로 자연스럽게 포함하세요.
+
                 - ownedSkills, matchedSkills, partialSkills, missingSkills의 score도 0~100 사이 정수로 작성하세요.
                 - priority는 high, medium, low 중 하나로 작성하세요.
                 - requiredSkills, preferredSkills, mainTasks, jobKeywords, jobSummary는 입력된 채용공고 분석 값을 유지하거나 정리해서 반환하세요.

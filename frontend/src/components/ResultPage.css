@@ -648,6 +648,8 @@
   font-size: 14px;
   line-height: 1.55;
   font-weight: 600;
+  text-align: left;
+  white-space: pre-line;
 }
 
 @media (max-width: 980px) {
