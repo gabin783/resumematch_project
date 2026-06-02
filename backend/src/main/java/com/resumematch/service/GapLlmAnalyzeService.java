@@ -165,9 +165,13 @@ public class GapLlmAnalyzeService {
                 규칙:
                 - JSON 외의 설명, 마크다운, 코드블록은 절대 포함하지 마세요.
                 - requiredSkills를 가장 중요하게 평가하세요.
-                - requiredSkills와 resumeSkills가 직접 일치하면 matchedSkills에 넣으세요.
+                - resumeSkills에 명시된 기술은 절대 missingSkills로 분류하지 마세요.
+                - JD 요구사항에 있고 resumeSkills에도 있으면 matchedSkills로 분류하세요.
+                - JD 요구사항에 있고 resumeSkills에는 없지만 관련 기술, 유사 경험, 같은 계열의 프레임워크/도구 경험이 있으면 partialSkills로 분류하세요.
+                - JD 요구사항에 있고 resumeSkills 및 관련 경험이 모두 없을 때만 missingSkills로 분류하세요.
+                - 실무 경험의 깊이가 부족한 경우에는 missingSkills가 아니라 partialSkills로 분류하고 score를 50~70 사이로 주세요.
+                - missingSkills에는 정말 이력서에서 확인되지 않는 기술만 넣으세요.
                 - 비슷한 경험이나 관련 기술은 partialSkills에 넣으세요.
-                - 요구사항에는 있으나 이력서에 근거가 부족하면 missingSkills에 넣으세요.
                 - preferredSkills는 matchScore에 보조적으로만 반영하세요.
                 - 이력서에 근거가 없는 기술을 ownedSkills로 판단하지 마세요.
                 - ownedSkills에는 이력서 보유 기술 중 핵심 기술을 최소 5개, 최대 8개 넣으세요.
