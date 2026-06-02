@@ -6,7 +6,26 @@ import './ResumeMatch.css';
 const API_BASE_URL = 'http://localhost:8080/api/resume';
 const JOB_ANALYZE_API_URL = 'http://localhost:8080/api/job/analyze';
 const MAX_JD_LENGTH = 5000;
-const RESUME_SKILL_LIMIT = 10;
+const RESUME_SKILL_LIMIT = 8;
+const RESUME_SKILL_PRIORITY = [
+  'Java',
+  'Spring Boot',
+  'JPA',
+  'MySQL',
+  'React',
+  'TypeScript',
+  'Docker',
+  'AWS',
+  'QueryDSL',
+  'PostgreSQL',
+  'Redis',
+  'MongoDB',
+  'Kubernetes',
+  'Jenkins',
+  'GitHub Actions',
+  'REST API',
+  'Git',
+];
 
 const steps = [
   '이력서 업로드',
@@ -30,6 +49,31 @@ const sampleExtractedJob = {
 };
 
 const toArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const prioritizeResumeSkills = (skills) => {
+  const priorityIndex = new Map(
+    RESUME_SKILL_PRIORITY.map((skill, index) => [skill.toLowerCase(), index])
+  );
+
+  return [...skills].sort((a, b) => {
+    const aIndex = priorityIndex.get(String(a).toLowerCase());
+    const bIndex = priorityIndex.get(String(b).toLowerCase());
+
+    if (aIndex !== undefined && bIndex !== undefined) {
+      return aIndex - bIndex;
+    }
+
+    if (aIndex !== undefined) {
+      return -1;
+    }
+
+    if (bIndex !== undefined) {
+      return 1;
+    }
+
+    return 0;
+  });
+};
 
 const normalizeJobAnalysis = (data) => {
   const requiredSkills = toArray(data?.requiredSkills);
@@ -70,7 +114,7 @@ const ResumeMatch = () => {
 
   const isResumeCompleted = Boolean(parsedResumeData?.skills?.length);
   const isJobCompleted = Boolean(jobAnalysisResult);
-  const resumeSkills = parsedResumeData?.skills || [];
+  const resumeSkills = prioritizeResumeSkills(parsedResumeData?.skills || []);
   const visibleResumeSkills = isResumeSkillsExpanded
     ? resumeSkills
     : resumeSkills.slice(0, RESUME_SKILL_LIMIT);
