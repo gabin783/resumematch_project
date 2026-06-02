@@ -16,6 +16,29 @@ const defaultMatchedSkills = ['데이터 처리', 'Python 기반 분석'];
 const defaultPartialSkills = ['머신러닝 기초', '통계 분석'];
 const defaultNeedSkills = ['고급 SQL', '모델 검증 경험'];
 
+// TODO: 배지 색상 확인이 끝나면 false로 바꾸거나 badgePreviewData와 함께 제거하세요.
+const ENABLE_BADGE_PREVIEW = import.meta.env.DEV;
+
+const badgePreviewData = {
+  matchScore: 68,
+  targetJob: '백엔드 개발자',
+  analysis: '상태 배지 색상 확인을 위한 개발용 미리보기 데이터입니다.',
+  learningDirection: '부족 스킬의 우선순위를 확인하고 단계별로 보완하세요.',
+  requiredSkills: ['Java', 'Docker'],
+  preferredSkills: ['Jenkins'],
+  jobKeywords: ['JavaScript', 'React', 'REST API', 'Java', 'Docker', 'Jenkins'],
+  ownedSkills: [
+    { name: 'JavaScript', score: 90, status: '강점', evidence: '배지 색상 확인용 강점 스킬입니다.' },
+    { name: 'React', score: 76, status: '보유', evidence: '배지 색상 확인용 보유 스킬입니다.' },
+    { name: 'REST API', score: 60, status: '관련 경험', evidence: '배지 색상 확인용 관련 경험 스킬입니다.' },
+  ],
+  missingSkills: [
+    { name: 'Java', priority: 'high', status: '필수 보완', evidence: '배지 색상 확인용 필수 보완 스킬입니다.' },
+    { name: 'Docker', priority: 'medium', status: '우선 학습', evidence: '배지 색상 확인용 우선 학습 스킬입니다.' },
+    { name: 'Jenkins', priority: 'low', status: '추가 학습', evidence: '배지 색상 확인용 추가 학습 스킬입니다.' },
+  ],
+};
+
 const toSkillArray = (value) => {
   if (!value) return [];
 
@@ -81,10 +104,11 @@ const toSkillScoreArray = (value, fallbackScores = []) => {
           return {
             name: item.trim(),
             score: fallbackScores[index] ?? fallbackScores[fallbackScores.length - 1] ?? 60,
-            reason: '',
-            evidence: '',
-            priority: '',
-            hasScore: false,
+          reason: '',
+          evidence: '',
+          priority: '',
+          hasScore: false,
+          statusLabel: '',
           };
         }
 
@@ -99,6 +123,7 @@ const toSkillScoreArray = (value, fallbackScores = []) => {
           evidence: item?.evidence || '',
           priority: item?.priority || '',
           hasScore,
+          statusLabel: item?.statusLabel || item?.status || '',
         };
       })
       .filter((item) => item.name);
@@ -111,6 +136,7 @@ const toSkillScoreArray = (value, fallbackScores = []) => {
     evidence: '',
     priority: '',
     hasScore: false,
+    statusLabel: '',
   }));
 };
 
@@ -159,6 +185,7 @@ const hasSkill = (skills, targetSkill) => {
 };
 
 const getOwnedSkillStatus = (item) => {
+  if (item?.statusLabel) return item.statusLabel;
   if (!item?.hasScore) return '보유';
   if (item.score >= 85) return '강점';
   if (item.score >= 70) return '보유';
@@ -167,6 +194,7 @@ const getOwnedSkillStatus = (item) => {
 };
 
 const getMissingSkillStatus = (item, requiredSkills = [], preferredSkills = []) => {
+  if (item?.statusLabel) return item.statusLabel;
   const priority = String(item?.priority || '').toLowerCase();
 
   if (priority === 'high') return '필수 보완';
@@ -175,6 +203,25 @@ const getMissingSkillStatus = (item, requiredSkills = [], preferredSkills = []) 
   if (hasSkill(requiredSkills, item?.name)) return '필수 보완';
   if (hasSkill(preferredSkills, item?.name)) return '추가 학습';
   return '우선 학습';
+};
+
+const getSkillStatusClassName = (statusLabel) => {
+  switch (statusLabel) {
+    case '강점':
+      return 'status-strong';
+    case '보유':
+      return 'status-owned';
+    case '관련 경험':
+      return 'status-related';
+    case '필수 보완':
+      return 'status-required';
+    case '우선 학습':
+      return 'status-priority';
+    case '추가 학습':
+      return 'status-extra';
+    default:
+      return 'status-neutral';
+  }
 };
 
 const buildProgressItems = (skills, baseScores) =>
@@ -196,16 +243,19 @@ const ResultPage = () => {
   }, [location.state]);
 
   const report = useMemo(() => {
-    if (!resultData) return null;
+    const useBadgePreview =
+      ENABLE_BADGE_PREVIEW && new URLSearchParams(location.search).get('mockBadges') === 'true';
+    const activeResultData = resultData || (useBadgePreview ? badgePreviewData : null);
+    if (!activeResultData) return null;
 
-    const storedGapReport = parseStoredGapReport(resultData);
+    const storedGapReport = parseStoredGapReport(activeResultData);
     const sourceData = storedGapReport
       ? {
-          ...resultData,
+          ...activeResultData,
           ...storedGapReport,
-          learningDirection: storedGapReport.learningDirection || resultData.learningDirection,
+          learningDirection: storedGapReport.learningDirection || activeResultData.learningDirection,
         }
-      : resultData;
+      : activeResultData;
 
     const missingSkillScores = toSkillScoreArray(sourceData.missingSkills, [30, 25, 35, 30, 45]);
     const matchedSkillScores = toSkillScoreArray(sourceData.matchedSkills, [90, 85, 80, 75, 70]);
@@ -281,7 +331,7 @@ const ResultPage = () => {
         jobKeywords.length > 0 ||
         jobSummary.length > 0,
     };
-  }, [resultData]);
+  }, [location.search, resultData]);
 
   if (!report) {
     return (
@@ -491,10 +541,12 @@ const ResultPage = () => {
 
           <div className="progress-list">
             {report.ownedProgress.map((item) => (
-              <div className="progress-item blue" key={item.name}>
+              <div className={`progress-item blue ${getSkillStatusClassName(item.statusLabel)}`} key={item.name}>
                 <div>
                   <span>{item.name}</span>
-                  <strong className="skill-status-badge">{item.statusLabel}</strong>
+                  <strong className={`skill-status-badge ${getSkillStatusClassName(item.statusLabel)}`}>
+                    {item.statusLabel}
+                  </strong>
                 </div>
               </div>
             ))}
@@ -512,10 +564,12 @@ const ResultPage = () => {
 
           <div className="progress-list">
             {report.missingProgress.map((item) => (
-              <div className="progress-item red" key={item.name}>
+              <div className={`progress-item red ${getSkillStatusClassName(item.statusLabel)}`} key={item.name}>
                 <div>
                   <span>{item.name}</span>
-                  <strong className="skill-status-badge">{item.statusLabel}</strong>
+                  <strong className={`skill-status-badge ${getSkillStatusClassName(item.statusLabel)}`}>
+                    {item.statusLabel}
+                  </strong>
                 </div>
               </div>
             ))}
@@ -574,10 +628,10 @@ const ResultPage = () => {
 
             <div className="skill-modal-list">
               {detailModal.items.map((item) => (
-                <article className="skill-detail-card" key={item.name}>
+                <article className={`skill-detail-card ${getSkillStatusClassName(item.statusLabel)}`} key={item.name}>
                   <div className="skill-detail-top">
                     <h3>{item.name}</h3>
-                    <span className={detailModal.type === 'missing' ? 'danger' : 'primary'}>
+                    <span className={getSkillStatusClassName(item.statusLabel)}>
                       {item.statusLabel}
                     </span>
                   </div>

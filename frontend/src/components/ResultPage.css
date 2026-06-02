@@ -288,8 +288,8 @@
 }
 
 .progress-item.red {
-  border: 1px solid #ffe1e1;
-  background: #fffafa;
+  border: 1px solid #e3e8f5;
+  background: #fff;
 }
 
 .progress-item > div:first-child {
@@ -319,16 +319,54 @@
   flex: 0 0 auto;
   align-items: center;
   padding: 0 10px;
+  border: 1px solid transparent;
   border-radius: 999px;
-  color: #4f67ee;
-  background: #eef3ff;
   font-size: 12px;
   font-weight: 900;
 }
 
-.progress-item.red .skill-status-badge {
-  color: #ef4444;
-  background: #fff1f1;
+.skill-status-badge.status-strong,
+.skill-detail-top span.status-strong {
+  border-color: #c7d2fe;
+  background: #eef3ff;
+  color: #4f67ee;
+}
+
+.skill-status-badge.status-owned,
+.skill-detail-top span.status-owned {
+  border-color: #bbf7d0;
+  background: #ecfdf3;
+  color: #16a34a;
+}
+
+.skill-status-badge.status-related,
+.skill-detail-top span.status-related,
+.skill-status-badge.status-neutral,
+.skill-detail-top span.status-neutral {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.skill-status-badge.status-required,
+.skill-detail-top span.status-required {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.skill-status-badge.status-priority,
+.skill-detail-top span.status-priority {
+  border-color: #fde68a;
+  background: #fffbeb;
+  color: #b7791f;
+}
+
+.skill-status-badge.status-extra,
+.skill-detail-top span.status-extra {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #64748b;
 }
 
 .roadmap-card {
@@ -619,6 +657,7 @@
   min-height: 30px;
   display: inline-flex;
   align-items: center;
+  border: 1px solid transparent;
   padding: 0 12px;
   border-radius: 999px;
   font-size: 13px;
