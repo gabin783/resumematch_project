@@ -142,7 +142,7 @@ public class GapLlmAnalyzeService {
                   "matchScore": 72,
                   "targetJob": "",
                   "analysis": "",
-                  "learningDirection": "",
+                  "learningDirection": "Java와 Spring Boot 기본 문법을 먼저 학습하세요.\\nREST API CRUD 프로젝트를 만들어 이력서 근거를 추가하세요.\\nDocker와 Jenkins를 활용한 배포 흐름을 실습하세요.",
                   "ownedSkills": [
                     { "name": "", "score": 80, "reason": "", "evidence": "", "priority": "medium" }
                   ],
@@ -234,6 +234,16 @@ public class GapLlmAnalyzeService {
                 - missingSkills evidence를 "경험이 없습니다" 같은 짧은 문장 하나로 끝내지 마세요.
                 - recommendation이라는 필드는 만들지 마세요. 학습/강화 방향은 reason에 한 문장으로 자연스럽게 포함하세요.
 
+                learningDirection 작성 기준:
+                - learningDirection은 반드시 3개의 학습 단계로 작성하세요.
+                - learningDirection은 배열이 아니라 하나의 문자열입니다.
+                - 각 단계는 줄바꿈 문자 \\n으로 구분하세요.
+                - 1줄: 가장 우선 보완해야 할 필수 기술 학습을 행동 중심 문장으로 작성하세요.
+                - 2줄: 작은 실습 프로젝트로 이력서 근거를 만드는 행동 중심 문장을 작성하세요.
+                - 3줄: 우대 기술 또는 배포/운영 역량을 보완하는 행동 중심 문장을 작성하세요.
+                - 한 문장 안에 모든 학습 방향을 몰아서 쓰지 마세요.
+                - 예: Java와 Spring Boot 기본 문법을 먼저 학습하세요.\\nREST API CRUD 프로젝트를 만들어 이력서 근거를 추가하세요.\\nDocker와 Jenkins를 활용한 배포 흐름을 실습하세요.
+
                 - ownedSkills, matchedSkills, partialSkills, missingSkills의 score도 0~100 사이 정수로 작성하세요.
                 - priority는 high, medium, low 중 하나로 작성하세요.
                 - requiredSkills, preferredSkills, mainTasks, jobKeywords, jobSummary는 입력된 채용공고 분석 값을 유지하거나 정리해서 반환하세요.
@@ -279,7 +289,7 @@ public class GapLlmAnalyzeService {
                             .matchScore(50)
                             .targetJob(defaultText(request.getTargetJob(), "분석된 직무"))
                             .analysis("스킬 갭 분석 결과를 불러오지 못했습니다.")
-                            .learningDirection("채용공고의 필수 기술을 기준으로 부족한 역량을 우선 보완하세요.")
+                            .learningDirection(buildDefaultLearningDirection(request, List.of()))
                             .missingSkills(defaultList(request.getRequiredSkills()).stream()
                                     .limit(3)
                                     .map(skill -> skillScore(skill, 30, "채용공고 필수 기술입니다.", "fallback", "high"))
@@ -303,7 +313,7 @@ public class GapLlmAnalyzeService {
                 .matchScore(clampScore(response.getMatchScore() > 0 ? response.getMatchScore() : estimateScore(response)))
                 .targetJob(defaultText(response.getTargetJob(), defaultText(request.getTargetJob(), "분석된 직무")))
                 .analysis(defaultText(response.getAnalysis(), "이력서와 채용공고를 비교한 스킬 갭 분석 결과입니다."))
-                .learningDirection(defaultText(response.getLearningDirection(), "부족한 핵심 스킬을 우선순위에 따라 학습하세요."))
+                .learningDirection(normalizeLearningDirection(response.getLearningDirection(), request, missingSkills))
                 .ownedSkills(ownedSkills)
                 .matchedSkills(normalizeSkillScores(response.getMatchedSkills()))
                 .partialSkills(normalizeSkillScores(response.getPartialSkills()))
@@ -314,6 +324,40 @@ public class GapLlmAnalyzeService {
                 .jobKeywords(defaultList(response.getJobKeywords()).isEmpty() ? defaultList(request.getKeywords()) : defaultList(response.getJobKeywords()))
                 .jobSummary(defaultText(response.getJobSummary(), defaultText(request.getSummary(), "")))
                 .build();
+    }
+
+    private String normalizeLearningDirection(String value, GapMatchRequest request, List<SkillScoreDto> missingSkills) {
+        String normalized = defaultText(value, "").replace("\\n", "\n").trim();
+        List<String> lines = java.util.Arrays.stream(normalized.split("\\R+"))
+                .map(String::trim)
+                .filter(line -> !line.isBlank())
+                .toList();
+
+        if (lines.size() >= 3) {
+            return String.join("\n", lines.subList(0, 3));
+        }
+
+        return buildDefaultLearningDirection(request, missingSkills);
+    }
+
+    private String buildDefaultLearningDirection(GapMatchRequest request, List<SkillScoreDto> missingSkills) {
+        String primarySkill = defaultList(missingSkills).stream()
+                .map(SkillScoreDto::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .findFirst()
+                .orElseGet(() -> defaultList(request.getRequiredSkills()).stream()
+                        .filter(skill -> skill != null && !skill.isBlank())
+                        .findFirst()
+                        .orElse("필수 기술"));
+
+        String preferredSkill = defaultList(request.getPreferredSkills()).stream()
+                .filter(skill -> skill != null && !skill.isBlank())
+                .findFirst()
+                .orElse("Docker와 Jenkins");
+
+        return primarySkill + " 기본 개념과 문법을 먼저 학습하세요.\n"
+                + "REST API CRUD 프로젝트를 만들어 이력서 근거를 추가하세요.\n"
+                + preferredSkill + "를 활용한 배포/운영 흐름을 실습하세요.";
     }
 
     private GapMatchResponse parseFallbackResponse(String content) throws Exception {

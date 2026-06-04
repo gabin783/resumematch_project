@@ -241,59 +241,95 @@
 }
 
 .jd-card {
-  display: block;
-  overflow-y: auto;
-  padding-right: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.jd-group {
-  padding: 0 0 9px;
-  border-bottom: 1px solid #dfe4f0;
+.jd-summary-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.jd-group + .jd-group {
-  padding-top: 9px;
+.jd-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #edf1fb;
 }
 
-.jd-group:last-child {
-  padding-bottom: 0;
+.jd-summary-row:last-child {
   border-bottom: 0;
 }
 
-.jd-title {
-  display: flex;
+.jd-summary-label {
+  width: 44px;
+  min-height: 24px;
+  display: inline-flex;
+  flex: 0 0 44px;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 7px;
-}
-
-.jd-title strong {
-  font-size: 16px;
+  justify-content: center;
+  border: 1px solid #d6def8;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 12px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
-.jd-group.good .jd-title {
-  color: #39ad72;
-}
-
-.jd-group.good .result-tags span {
+.jd-summary-label.required {
   border-color: #cdeedd;
   background: #effbf5;
   color: #39ad72;
 }
 
-.jd-group.partial .jd-title {
+.jd-summary-label.preferred {
+  border-color: #d6def8;
+  background: #eef3ff;
   color: #4f67ee;
 }
 
-.jd-group.need .jd-title {
-  color: #f07a10;
-}
-
-.jd-group.need .result-tags span {
+.jd-summary-label.task {
   border-color: #ffd8b8;
   background: #fff5ea;
   color: #e96700;
+}
+
+.jd-summary-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.jd-summary-content.result-tags {
+  gap: 6px;
+}
+
+.jd-summary-content.result-tags span {
+  min-height: 25px;
+  padding: 0 9px;
+  font-size: 11.5px;
+}
+
+.jd-summary-row:has(.jd-summary-label.required) .result-tags span {
+  border-color: #cdeedd;
+  background: #effbf5;
+  color: #39ad72;
+}
+
+.jd-task-tags span {
+  max-width: 100%;
+  height: auto;
+  min-height: 25px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  line-height: 1.25;
+  white-space: normal;
 }
 
 .skill-card {

@@ -1,10 +1,7 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  AlertTriangle,
-  CheckCircle2,
   ChevronRight,
-  CircleEllipsis,
   FileSearch,
   Map,
   X,
@@ -23,10 +20,14 @@ const badgePreviewData = {
   matchScore: 68,
   targetJob: '백엔드 개발자',
   analysis: '상태 배지 색상 확인을 위한 개발용 미리보기 데이터입니다.',
-  learningDirection: '부족 스킬의 우선순위를 확인하고 단계별로 보완하세요.',
+  learningDirection: 'Java와 Spring Boot 기본 문법을 먼저 학습하세요.\nREST API CRUD 프로젝트를 만들어 이력서 근거를 추가하세요.\nDocker와 Jenkins를 활용한 배포 흐름을 실습하세요.',
   requiredSkills: ['Java', 'Docker'],
   preferredSkills: ['Jenkins'],
   jobKeywords: ['JavaScript', 'React', 'REST API', 'Java', 'Docker', 'Jenkins'],
+  mainTasks: [
+    'Spring Boot 기반 REST API 개발',
+    '데이터베이스 설계 및 성능 개선',
+  ],
   ownedSkills: [
     { name: 'JavaScript', score: 90, status: '강점', evidence: '배지 색상 확인용 강점 스킬입니다.' },
     { name: 'React', score: 76, status: '보유', evidence: '배지 색상 확인용 보유 스킬입니다.' },
@@ -312,7 +313,7 @@ const ResultPage = () => {
     const learningLines = splitTextLines(sourceData.learningDirection);
     const jobRequiredSkills = toSkillArray(sourceData.requiredSkills);
     const jobPreferredSkills = toSkillArray(sourceData.preferredSkills);
-    const jobMainTasks = toSkillArray(sourceData.mainTasks);
+    const jobMainTasks = toSkillArray(sourceData.jobMainTasks || sourceData.mainTasks);
     const jobKeywords = toSkillArray(sourceData.jobKeywords || sourceData.keywords);
     const jobSummary = sourceData.jobSummary || sourceData.summary || '';
     const roadmapItems =
@@ -494,84 +495,66 @@ const ResultPage = () => {
         </article>
 
         <article className="result-card jd-card">
-          <CardHeader title="JD 핵심 요구사항 매칭" />
+          <CardHeader title="JD 핵심 요구사항" />
 
           {report.hasJobAnalysis ? (
-            <>
-              <div className="jd-group good">
-                <div className="jd-title">
-                  <CheckCircle2 size={22} />
-                  <strong>필수 스킬</strong>
-                </div>
-                <div className="result-tags">
+            <div className="jd-summary-list">
+              <div className="jd-summary-row">
+                <span className="jd-summary-label required">필수</span>
+                <div className="jd-summary-content result-tags">
                   {report.jobRequiredSkills.slice(0, 4).map((skill) => (
                     <span key={skill}>{skill}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="jd-group partial">
-                <div className="jd-title">
-                  <CircleEllipsis size={22} />
-                  <strong>우대 스킬</strong>
-                </div>
-                <div className="result-tags">
+              <div className="jd-summary-row">
+                <span className="jd-summary-label preferred">우대</span>
+                <div className="jd-summary-content result-tags">
                   {report.jobPreferredSkills.slice(0, 4).map((skill) => (
                     <span key={skill}>{skill}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="jd-group need">
-                <div className="jd-title">
-                  <AlertTriangle size={22} />
-                  <strong>주요 업무</strong>
-                </div>
-                <div className="result-tags">
-                  {report.jobMainTasks.slice(0, 3).map((task) => (
+              <div className="jd-summary-row">
+                <span className="jd-summary-label task">업무</span>
+                <div className="jd-summary-content result-tags jd-task-tags">
+                  {report.jobMainTasks.slice(0, 2).map((task) => (
                     <span key={task}>{task}</span>
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           ) : (
-            <>
-              <div className="jd-group good">
-                <div className="jd-title">
-                  <CheckCircle2 size={22} />
-                  <strong>일치</strong>
-                </div>
-                <div className="result-tags">
+            <div className="jd-summary-list">
+              <div className="jd-summary-row">
+                <span className="jd-summary-label required">일치</span>
+                <div className="jd-summary-content result-tags">
                   {report.matchedSkills.slice(0, 3).map((skill) => (
                     <span key={skill}>{skill}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="jd-group partial">
-                <div className="jd-title">
-                  <CircleEllipsis size={22} />
-                  <strong>부분 일치</strong>
-                </div>
-                <div className="result-tags">
+              <div className="jd-summary-row">
+                <span className="jd-summary-label preferred">부분</span>
+                <div className="jd-summary-content result-tags">
                   {report.partialSkills.slice(0, 3).map((skill) => (
                     <span key={skill}>{skill}</span>
                   ))}
                 </div>
               </div>
 
-              <div className="jd-group need">
-                <div className="jd-title">
-                  <AlertTriangle size={22} />
-                  <strong>보완 필요</strong>
-                </div>
-                <div className="result-tags">
+              <div className="jd-summary-row">
+                <span className="jd-summary-label task">보완</span>
+                <div className="jd-summary-content result-tags">
                   {report.needSkills.slice(0, 3).map((skill) => (
                     <span key={skill}>{skill}</span>
                   ))}
                 </div>
               </div>
-            </>
+            </div>
           )}
         </article>
 
