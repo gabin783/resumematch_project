@@ -57,6 +57,42 @@
   font-weight: 900;
 }
 
+.summary-card h2,
+.jd-card h2,
+.skill-card h2,
+.roadmap-card h2 {
+  font-size: 17px;
+}
+
+.card-header {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card-header .card-title {
+  margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.card-header-left {
+  min-width: 0;
+}
+
+.card-header-action {
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.card-header-action:empty {
+  min-height: 1px;
+}
+
 .score-card {
   display: flex;
   flex-direction: column;
@@ -64,9 +100,8 @@
   justify-content: flex-start;
 }
 
-.score-card h2 {
-  width: 100%;
-  align-self: flex-start;
+.score-card .card-header {
+  align-self: stretch;
 }
 
 .score-ring {
@@ -103,60 +138,87 @@
 }
 
 .summary-card {
-  display: block;
-  overflow-y: auto;
-  padding-right: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+  padding: 14px;
 }
 
 .summary-box {
-  padding: 14px;
-  border: 1px solid #dce3f8;
-  border-radius: 12px;
-  background: #f8faff;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  box-sizing: border-box;
 }
 
-.summary-box > span {
-  display: block;
-  margin-bottom: 8px;
-  color: #6b7280;
-  font-size: 13px;
+.summary-box-compact {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 6px;
+}
+
+.summary-label {
+  width: 44px;
+  min-height: 24px;
+  display: inline-flex;
+  flex: 0 0 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 9px;
+  border: 1px solid #d6def8;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.summary-label.weakness {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.summary-section {
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 62px;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid #edf1fb;
+  border-radius: 0;
+  background: transparent;
+}
+
+.summary-section:last-child {
+  border-bottom: 0;
+}
+
+.summary-section p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: #343b4a;
+  font-size: 12px;
+  line-height: 1.3;
   font-weight: 700;
   text-align: left;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
-.summary-box > strong {
-  display: block;
-  margin-bottom: 10px;
-  color: #111827;
-  font-size: 20px;
-  line-height: 1.25;
-  font-weight: 900;
-  text-align: left;
-}
-
-.summary-box > p {
-  max-height: none;
-  margin: 0;
-  overflow: visible;
-  color: #343b4a;
-  font-size: 13px;
-  line-height: 1.45;
-  font-weight: 600;
-  white-space: pre-wrap;
-  text-align: left;
-}
-
-.summary-box > p.job-summary-note {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid #e1e7fb;
-  color: #4f5d77;
-}
-
-.summary-tags {
-  margin-top: 10px;
-  overflow: visible;
-  padding-right: 0;
+.summary-card .card-header {
+  margin-bottom: 6px;
 }
 
 .result-tags {
@@ -240,19 +302,7 @@
   overflow: hidden;
 }
 
-.card-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 10px;
-}
-
-.card-title-row h2 {
-  margin: 0;
-}
-
-.card-title-row button,
+.card-header-action button,
 .roadmap-link {
   display: inline-flex;
   align-items: center;
@@ -629,6 +679,63 @@
   gap: 14px;
   padding: 18px 24px 24px;
   overflow-y: auto;
+}
+
+.summary-modal-content {
+  padding: 18px 24px 24px;
+  overflow-y: auto;
+}
+
+.summary-modal .skill-modal-header {
+  position: relative;
+  justify-content: center;
+  text-align: center;
+}
+
+.summary-modal .skill-modal-header > div {
+  width: 100%;
+  padding: 0 52px;
+}
+
+.summary-modal .skill-modal-header h2,
+.summary-modal .skill-modal-header p {
+  text-align: center;
+}
+
+.summary-modal .skill-modal-header button {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+}
+
+.summary-modal-content dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.summary-modal-content dl div {
+  padding: 14px;
+  border: 1px solid #dce3f8;
+  border-radius: 12px;
+  background: #f8faff;
+}
+
+.summary-modal-content dt {
+  margin-bottom: 7px;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.summary-modal-content dd {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 650;
+  text-align: left;
+  white-space: pre-line;
 }
 
 .skill-detail-card {

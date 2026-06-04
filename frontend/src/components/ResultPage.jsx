@@ -224,8 +224,38 @@ const getSkillStatusClassName = (statusLabel) => {
   }
 };
 
+const formatSkillNames = (skills) => skills.filter(Boolean).slice(0, 3).join(', ');
+
+const buildStrengthSummary = (skills) => {
+  const skillNames = formatSkillNames(skills);
+
+  if (!skillNames) {
+    return '직무와 연결되는 기본 역량이 확인됩니다. 프로젝트 경험을 통해 API 연동과 기술 스택 이해도도 일부 확인됩니다.';
+  }
+
+  return `${skillNames} 경험이 확인됩니다. 프로젝트 경험을 통해 API 연동과 기술 스택 이해도도 일부 확인됩니다.`;
+};
+
+const buildWeaknessSummary = (skills) => {
+  const skillNames = formatSkillNames(skills);
+
+  if (!skillNames) {
+    return '채용공고 요구사항에 맞춘 보완 항목 점검이 필요합니다. 작은 실습 프로젝트로 이력서 근거를 추가하면 좋습니다.';
+  }
+
+  return `${skillNames} 역량 보완이 필요합니다. 작은 실습 프로젝트로 이력서 근거를 추가하면 좋습니다.`;
+};
+
 const buildProgressItems = (skills, baseScores) =>
   toSkillScoreArray(skills, baseScores).slice(0, 5);
+
+const CardHeader = ({ title, action }) => (
+  <div className="card-header">
+    <div className="card-header-left" aria-hidden="true" />
+    <h2 className="card-title">{title}</h2>
+    <div className="card-header-action">{action}</div>
+  </div>
+);
 
 const ResultPage = () => {
   const location = useLocation();
@@ -234,6 +264,7 @@ const ResultPage = () => {
   const initialData = location.state?.analysisResult || location.state?.resultData;
   const [resultData, setResultData] = useState(initialData || null);
   const [detailModal, setDetailModal] = useState(null);
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
 
   useEffect(() => {
     const incomingData = location.state?.analysisResult || location.state?.resultData;
@@ -302,6 +333,15 @@ const ResultPage = () => {
       ...item,
       statusLabel: getMissingSkillStatus(item, jobRequiredSkills, jobPreferredSkills),
     }));
+    const strengthSkills =
+      matchedSkills.length > 0
+        ? matchedSkills
+        : ownedProgress.map((item) => item.name);
+    const weaknessSkills = needSkills.length > 0
+      ? needSkills
+      : missingProgress.map((item) => item.name);
+    const strengthSummary = buildStrengthSummary(strengthSkills);
+    const weaknessSummary = buildWeaknessSummary(weaknessSkills);
 
     return {
       score: getScore(sourceData),
@@ -324,6 +364,8 @@ const ResultPage = () => {
       jobMainTasks,
       jobKeywords,
       jobSummary,
+      strengthSummary,
+      weaknessSummary,
       hasJobAnalysis:
         jobRequiredSkills.length > 0 ||
         jobPreferredSkills.length > 0 ||
@@ -421,7 +463,7 @@ const ResultPage = () => {
 
       <section className="result-grid">
         <article className="result-card score-card">
-          <h2>전체 매칭 점수</h2>
+          <CardHeader title="전체 매칭 점수" />
           <div className="score-ring" style={circleStyle}>
             <div className="score-ring-inner">
               <strong>{report.score}%</strong>
@@ -431,26 +473,28 @@ const ResultPage = () => {
         </article>
 
         <article className="result-card summary-card">
-          <h2>매칭 요약</h2>
-          <div className="summary-box">
-            <span>지원 직무</span>
-            <strong>{report.targetJob}</strong>
-            <p>{report.analysis}</p>
-            {report.jobSummary ? <p className="job-summary-note">{report.jobSummary}</p> : null}
-          </div>
-          <div className="summary-tags">
-            <div className="result-tags">
-              {(report.hasJobAnalysis ? report.jobKeywords : [...report.matchedSkills, ...report.partialSkills])
-                .slice(0, 5)
-                .map((skill) => (
-                  <span key={skill}>{skill}</span>
-                ))}
+          <CardHeader
+            title="매칭 요약"
+            action={(
+              <button type="button" onClick={() => setIsSummaryModalOpen(true)}>
+              더 보기 <ChevronRight size={16} />
+              </button>
+            )}
+          />
+          <div className="summary-box summary-box-compact">
+            <div className="summary-section">
+              <span className="summary-label strength">강점</span>
+              <p>{report.strengthSummary}</p>
+            </div>
+            <div className="summary-section">
+              <span className="summary-label weakness">약점</span>
+              <p>{report.weaknessSummary}</p>
             </div>
           </div>
         </article>
 
         <article className="result-card jd-card">
-          <h2>JD 핵심 요구사항 매칭</h2>
+          <CardHeader title="JD 핵심 요구사항 매칭" />
 
           {report.hasJobAnalysis ? (
             <>
@@ -532,12 +576,14 @@ const ResultPage = () => {
         </article>
 
         <article className="result-card skill-card">
-          <div className="card-title-row">
-            <h2>보유 스킬</h2>
-            <button type="button" onClick={() => openSkillDetailModal('owned')}>
+          <CardHeader
+            title="보유 스킬"
+            action={(
+              <button type="button" onClick={() => openSkillDetailModal('owned')}>
               더 보기 <ChevronRight size={16} />
-            </button>
-          </div>
+              </button>
+            )}
+          />
 
           <div className="progress-list">
             {report.ownedProgress.map((item) => (
@@ -555,12 +601,14 @@ const ResultPage = () => {
 
 
         <article className="result-card skill-card">
-          <div className="card-title-row">
-            <h2>부족 스킬</h2>
-            <button type="button" onClick={() => openSkillDetailModal('missing')}>
+          <CardHeader
+            title="부족 스킬"
+            action={(
+              <button type="button" onClick={() => openSkillDetailModal('missing')}>
               더 보기 <ChevronRight size={16} />
-            </button>
-          </div>
+              </button>
+            )}
+          />
 
           <div className="progress-list">
             {report.missingProgress.map((item) => (
@@ -577,7 +625,7 @@ const ResultPage = () => {
         </article>
 
         <article className="result-card roadmap-card">
-          <h2>추천 학습 방향</h2>
+          <CardHeader title="추천 학습 방향" />
           <div className="roadmap-list">
             {report.roadmapItems.map((item, index) => (
               <div className="roadmap-item" key={`${item}-${index}`}>
@@ -648,6 +696,53 @@ const ResultPage = () => {
                   </dl>
                 </article>
               ))}
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {isSummaryModalOpen ? (
+        <div className="skill-modal-backdrop" role="presentation" onClick={() => setIsSummaryModalOpen(false)}>
+          <section
+            className="skill-modal summary-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="summary-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="skill-modal-header">
+              <div>
+                <h2 id="summary-modal-title">매칭 요약 상세</h2>
+                <p>이력서와 채용공고를 비교한 전체 분석 내용입니다.</p>
+              </div>
+              <button type="button" onClick={() => setIsSummaryModalOpen(false)} aria-label="매칭 요약 모달 닫기">
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="summary-modal-content">
+              <dl>
+                <div>
+                  <dt>지원 직무</dt>
+                  <dd>{report.targetJob}</dd>
+                </div>
+                <div>
+                  <dt>전체 분석 요약</dt>
+                  <dd>{report.analysis}</dd>
+                </div>
+                <div>
+                  <dt>추천 학습 방향</dt>
+                  <dd>{report.learningDirection}</dd>
+                </div>
+                <div>
+                  <dt>확인된 강점</dt>
+                  <dd>{report.ownedProgress.map((skill) => skill.name).slice(0, 5).join(', ')}</dd>
+                </div>
+                <div>
+                  <dt>보완 필요 스킬</dt>
+                  <dd>{report.missingProgress.map((skill) => skill.name).slice(0, 5).join(', ')}</dd>
+                </div>
+              </dl>
             </div>
           </section>
         </div>
