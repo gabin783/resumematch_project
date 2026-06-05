@@ -194,7 +194,7 @@ const ResumeMatch = () => {
   const applyJobAnalysis = (analysis) => {
     setJobAnalysisResult(analysis);
     setTargetJob(analysis.targetJob);
-    setIsDetailOpen(true);
+    setIsDetailOpen(false);
   };
 
   const requestJobAnalysis = async (description) => {
@@ -385,6 +385,12 @@ const ResumeMatch = () => {
           {isDetailOpen ? '상세 닫기' : '상세 보기'}
         </button>
 
+        {jobUrlExtractMessage ? (
+          <p className={`rm-url-status compact${extractedJobDescription ? ' success' : ' error'}`}>
+            {jobUrlExtractMessage}
+          </p>
+        ) : null}
+
         {isDetailOpen ? (
           <div className="rm-extract-detail">
             <h3>상세 분석 내용</h3>
@@ -566,12 +572,6 @@ const ResumeMatch = () => {
               </div>
 
               {renderExtractedJobCard()}
-
-              {jobUrlExtractMessage ? (
-                <p className={`rm-url-status${extractedJobDescription ? ' success' : ' error'}`}>
-                  {jobUrlExtractMessage}
-                </p>
-              ) : null}
 
               <p className="rm-url-help">URL 분석이 어려운 경우 직접 입력 탭을 이용하세요.</p>
             </div>
