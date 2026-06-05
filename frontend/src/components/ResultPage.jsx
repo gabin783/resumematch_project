@@ -258,6 +258,43 @@ const CardHeader = ({ title, action }) => (
   </div>
 );
 
+const formatJdSummaryText = (items = [], limit) => {
+  const visibleItems = items.slice(0, limit);
+  const hiddenCount = Math.max(items.length - visibleItems.length, 0);
+  const summary = visibleItems.join(', ');
+
+  if (!summary) return '';
+  return hiddenCount > 0 ? `${summary} 외 ${hiddenCount}개` : summary;
+};
+
+const JdSummaryRow = ({ label, type, items = [], limit }) => {
+  const summary = formatJdSummaryText(items, limit);
+
+  if (!summary) return null;
+
+  return (
+    <div className="jd-summary-row">
+      <span className={`jd-summary-label ${type}`}>{label}</span>
+      <p className="jd-summary-text">{summary}</p>
+    </div>
+  );
+};
+
+const JdDetailSection = ({ title, items = [], task = false }) => {
+  if (items.length === 0) return null;
+
+  return (
+    <section className="jd-detail-section">
+      <h3>{title}</h3>
+      <div className={task ? 'jd-detail-tasks' : 'jd-detail-tags'}>
+        {items.map((item, index) => (
+          <span key={`${item}-${index}`}>{item}</span>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const ResultPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -266,6 +303,7 @@ const ResultPage = () => {
   const [resultData, setResultData] = useState(initialData || null);
   const [detailModal, setDetailModal] = useState(null);
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState(false);
+  const [isJdModalOpen, setIsJdModalOpen] = useState(false);
 
   useEffect(() => {
     const incomingData = location.state?.analysisResult || location.state?.resultData;
@@ -495,36 +533,20 @@ const ResultPage = () => {
         </article>
 
         <article className="result-card jd-card">
-          <CardHeader title="JD 핵심 요구사항" />
+          <CardHeader
+            title="JD 핵심 요구사항"
+            action={(
+              <button type="button" onClick={() => setIsJdModalOpen(true)}>
+              더 보기 <ChevronRight size={16} />
+              </button>
+            )}
+          />
 
           {report.hasJobAnalysis ? (
             <div className="jd-summary-list">
-              <div className="jd-summary-row">
-                <span className="jd-summary-label required">필수</span>
-                <div className="jd-summary-content result-tags">
-                  {report.jobRequiredSkills.slice(0, 4).map((skill) => (
-                    <span key={skill}>{skill}</span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="jd-summary-row">
-                <span className="jd-summary-label preferred">우대</span>
-                <div className="jd-summary-content result-tags">
-                  {report.jobPreferredSkills.slice(0, 4).map((skill) => (
-                    <span key={skill}>{skill}</span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="jd-summary-row">
-                <span className="jd-summary-label task">업무</span>
-                <div className="jd-summary-content result-tags jd-task-tags">
-                  {report.jobMainTasks.slice(0, 2).map((task) => (
-                    <span key={task}>{task}</span>
-                  ))}
-                </div>
-              </div>
+              <JdSummaryRow label="필수" type="required" items={report.jobRequiredSkills} limit={3} />
+              <JdSummaryRow label="우대" type="preferred" items={report.jobPreferredSkills} limit={3} />
+              <JdSummaryRow label="업무" type="task" items={report.jobMainTasks} limit={1} />
             </div>
           ) : (
             <div className="jd-summary-list">
@@ -726,6 +748,42 @@ const ResultPage = () => {
                   <dd>{report.missingProgress.map((skill) => skill.name).slice(0, 5).join(', ')}</dd>
                 </div>
               </dl>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {isJdModalOpen ? (
+        <div className="skill-modal-backdrop" role="presentation" onClick={() => setIsJdModalOpen(false)}>
+          <section
+            className="skill-modal summary-modal jd-detail-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jd-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="skill-modal-header">
+              <div>
+                <h2 id="jd-modal-title">JD 핵심 요구사항 상세</h2>
+                <p>채용공고에서 추출한 핵심 요구사항입니다.</p>
+              </div>
+              <button type="button" onClick={() => setIsJdModalOpen(false)} aria-label="JD 핵심 요구사항 모달 닫기">
+                <X size={22} />
+              </button>
+            </div>
+
+            <div className="jd-detail-content">
+              {report.jobRequiredSkills.length > 0 ||
+              report.jobPreferredSkills.length > 0 ||
+              report.jobMainTasks.length > 0 ? (
+                <>
+                  <JdDetailSection title="필수 스킬" items={report.jobRequiredSkills} />
+                  <JdDetailSection title="우대 스킬" items={report.jobPreferredSkills} />
+                  <JdDetailSection title="주요 업무" items={report.jobMainTasks} task />
+                </>
+              ) : (
+                <p className="jd-detail-empty">채용공고 분석 결과가 없습니다.</p>
+              )}
             </div>
           </section>
         </div>

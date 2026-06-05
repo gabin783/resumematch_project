@@ -44,6 +44,9 @@ dependencies {
     // ✅ 워드 파일(.docx) 파싱을 위한 Apache POI 추가
     implementation 'org.apache.poi:poi:5.2.3'
     implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
+    // 채용공고 URL 정적 HTML 본문 추출용
+    implementation 'org.jsoup:jsoup:1.17.2'
 }
 
 tasks.named('test') {

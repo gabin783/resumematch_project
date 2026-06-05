@@ -566,6 +566,27 @@
   font-size: 13px;
 }
 
+.rm-url-status {
+  flex-shrink: 0;
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.rm-url-status.success {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.rm-url-status.error {
+  border: 1px solid #fed7aa;
+  background: #fff7ed;
+  color: #ea580c;
+}
+
 .rm-action-bar {
   position: sticky;
   bottom: 0;

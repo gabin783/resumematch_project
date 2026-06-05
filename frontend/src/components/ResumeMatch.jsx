@@ -5,6 +5,7 @@ import './ResumeMatch.css';
 
 const API_BASE_URL = 'http://localhost:8080/api/resume';
 const JOB_ANALYZE_API_URL = 'http://localhost:8080/api/job/analyze';
+const JOB_EXTRACT_URL_API_URL = 'http://localhost:8080/api/job/extract-url';
 const MAX_JD_LENGTH = 5000;
 const RESUME_SKILL_LIMIT = 8;
 const RESUME_SKILL_PRIORITY = [
@@ -106,6 +107,8 @@ const ResumeMatch = () => {
   const [jobUrl, setJobUrl] = useState('');
   const [targetJob, setTargetJob] = useState('');
   const [jobDescription, setJobDescription] = useState('');
+  const [extractedJobDescription, setExtractedJobDescription] = useState('');
+  const [jobUrlExtractMessage, setJobUrlExtractMessage] = useState('');
   const [jobAnalysisResult, setJobAnalysisResult] = useState(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isLoadingJob, setIsLoadingJob] = useState(false);
@@ -204,6 +207,16 @@ const ResumeMatch = () => {
     return normalizeJobAnalysis(response.data);
   };
 
+  const requestJobUrlExtraction = async (url) => {
+    const response = await axios.post(
+      JOB_EXTRACT_URL_API_URL,
+      { url },
+      { headers: { 'Content-Type': 'application/json' } },
+    );
+
+    return response.data;
+  };
+
   const handleLoadJobFromUrl = async () => {
     const description = jobUrl.trim();
 
@@ -214,16 +227,30 @@ const ResumeMatch = () => {
 
     setIsLoadingJob(true);
     setIsDetailOpen(false);
+    setJobUrlExtractMessage('');
 
     try {
-      // TODO: URL 본문 추출 API가 준비되면 URL 자체가 아니라 실제 채용공고 본문을 전달합니다.
-      const temporaryDescription = `채용공고 URL: ${description}`;
-      const analysis = await requestJobAnalysis(temporaryDescription);
+      const extracted = await requestJobUrlExtraction(description);
+      if (!extracted?.success || !extracted.content?.trim()) {
+        setJobAnalysisResult(null);
+        setExtractedJobDescription('');
+        setJobUrlExtractMessage(
+          extracted?.message || 'URL 본문을 불러오지 못했습니다. 직접 입력 탭에 공고 내용을 붙여넣어 주세요.',
+        );
+        alert('URL 본문을 불러오지 못했습니다. 직접 입력 탭에 공고 내용을 붙여넣어 주세요.');
+        return;
+      }
+
+      setExtractedJobDescription(extracted.content);
+      setJobUrlExtractMessage('본문 추출 완료');
+      const analysis = await requestJobAnalysis(extracted.content);
       applyJobAnalysis(analysis);
     } catch (error) {
       console.error('채용공고 URL 분석 오류:', error);
-      applyJobAnalysis(sampleExtractedJob);
-      alert('채용공고를 불러오지 못했습니다. 직접 입력 탭을 이용해주세요.');
+      setJobAnalysisResult(null);
+      setExtractedJobDescription('');
+      setJobUrlExtractMessage('URL 본문을 불러오지 못했습니다. 직접 입력 탭에 공고 내용을 붙여넣어 주세요.');
+      alert('URL 본문을 불러오지 못했습니다. 직접 입력 탭에 공고 내용을 붙여넣어 주세요.');
     } finally {
       setIsLoadingJob(false);
     }
@@ -247,6 +274,8 @@ const ResumeMatch = () => {
     try {
       const analysis = await requestJobAnalysis(originalDescription);
       console.log('채용공고 분석 응답:', analysis);
+      setExtractedJobDescription('');
+      setJobUrlExtractMessage('');
       applyJobAnalysis(analysis);
     } catch (error) {
       console.error('채용공고 분석 오류:', error);
@@ -258,7 +287,9 @@ const ResumeMatch = () => {
   };
 
   const handleAnalyzeJD = async () => {
-    const currentJobDescription = jobDescription.trim() || (inputMode === 'url' ? jobUrl.trim() : '');
+    const currentJobDescription = inputMode === 'url'
+      ? extractedJobDescription.trim()
+      : jobDescription.trim();
 
     if (!resumeFile || !parsedResumeData?.skills?.length) {
       alert('먼저 이력서를 업로드해주세요.');
@@ -328,6 +359,8 @@ const ResumeMatch = () => {
 
   const handleJobDescriptionChange = (value) => {
     setJobDescription(value);
+    setExtractedJobDescription('');
+    setJobUrlExtractMessage('');
     setJobAnalysisResult(null);
     setIsDetailOpen(false);
   };
@@ -516,6 +549,8 @@ const ResumeMatch = () => {
                   value={jobUrl}
                   onChange={(e) => {
                     setJobUrl(e.target.value);
+                    setExtractedJobDescription('');
+                    setJobUrlExtractMessage('');
                     setJobAnalysisResult(null);
                     setIsDetailOpen(false);
                   }}
@@ -531,6 +566,12 @@ const ResumeMatch = () => {
               </div>
 
               {renderExtractedJobCard()}
+
+              {jobUrlExtractMessage ? (
+                <p className={`rm-url-status${extractedJobDescription ? ' success' : ' error'}`}>
+                  {jobUrlExtractMessage}
+                </p>
+              ) : null}
 
               <p className="rm-url-help">URL 분석이 어려운 경우 직접 입력 탭을 이용하세요.</p>
             </div>
