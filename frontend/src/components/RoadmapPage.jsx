@@ -88,6 +88,71 @@ const normalizeCourses = (value) => {
   });
 };
 
+const normalizeLearningSteps = (value) =>
+  toArray(value).map((step, index) => {
+    if (typeof step === 'string') {
+      return {
+        id: `learning-step-${index}`,
+        type: 'concept',
+        title: step,
+        description: '',
+        expectedOutput: '',
+      };
+    }
+
+    return {
+      id: step.id || `learning-step-${index}`,
+      type: step.type || 'concept',
+      title: step.title || `학습 가이드 ${index + 1}`,
+      description: step.description || '',
+      expectedOutput: step.expectedOutput || '',
+    };
+  });
+
+const normalizePracticeProject = (value) => {
+  if (!value || typeof value !== 'object') return null;
+
+  return {
+    title: value.title || '',
+    goal: value.goal || '',
+    requirements: toArray(value.requirements),
+    completionDefinition: value.completionDefinition || '',
+    resumeBullet: value.resumeBullet || '',
+  };
+};
+
+const normalizeWeeks = (value) =>
+  toArray(value).map((week, index) => {
+    const focusSkills = toArray(week.focusSkills || week.tags);
+    const courses = normalizeCourses(week.recommendedCourses);
+
+    return {
+      week: Number(week.week) || index + 1,
+      title: week.title || focusSkills[0] || `추천 학습 ${index + 1}`,
+      summary: week.summary || week.goal || '',
+      tags: focusSkills.length > 0 ? focusSkills : ['실습', '정리'],
+      time: week.time || '약 6시간',
+      tasks: toArray(week.tasks),
+      completionCriteria: toArray(week.completionCriteria),
+      selfCheckItems: toArray(week.selfCheckItems),
+      learningSteps: normalizeLearningSteps(week.learningSteps),
+      practiceProject: normalizePracticeProject(week.practiceProject),
+      recommendedSearchQueries: toArray(week.recommendedSearchQueries),
+      recommendedCourses: courses,
+    };
+  });
+
+const getLearningStepTypeLabel = (type) => {
+  if (type === 'practice') return '실습';
+  if (type === 'resume') return '이력서';
+  return '개념';
+};
+
+const hasValidUrl = (url) => Boolean(url && url !== '#');
+
+const createGoogleSearchUrl = (query) =>
+  `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
 const buildWeeks = (skills, courses) => {
   const skillList = skills.length > 0 ? skills : ['기초 다지기', '핵심 역량 정제', '실전 프로젝트'];
   const labels = ['기초 다지기', '핵심 역량 정제', '데이터 분석 기초', '시각화와 인사이트', '실전 프로젝트'];
@@ -109,23 +174,33 @@ const buildWeeks = (skills, courses) => {
   });
 };
 
-const buildWeekTasks = (week) => [
-  {
-    id: `week-${week.week}-concept`,
-    title: `${week.title} 개념 학습`,
-    desc: '핵심 개념과 JD 요구사항을 연결해서 정리합니다.',
-  },
-  {
-    id: `week-${week.week}-summary`,
-    title: '핵심 개념 정리',
-    desc: '학습 내용을 짧은 노트와 예제로 정리합니다.',
-  },
-  {
-    id: `week-${week.week}-resume`,
-    title: '학습 내용 이력서 반영',
-    desc: '프로젝트 경험 문장으로 바꿔 이력서에 반영합니다.',
-  },
-];
+const buildWeekTasks = (week) => {
+  if (week.tasks?.length) {
+    return week.tasks.map((task, index) => ({
+      id: `week-${week.week}-task-${index}`,
+      title: typeof task === 'string' ? task : task.title || `학습 할 일 ${index + 1}`,
+      desc: typeof task === 'string' ? task : task.desc || task.description || '',
+    }));
+  }
+
+  return [
+    {
+      id: `week-${week.week}-concept`,
+      title: `${week.title} 개념 학습`,
+      desc: '핵심 개념과 JD 요구사항을 연결해서 정리합니다.',
+    },
+    {
+      id: `week-${week.week}-summary`,
+      title: '핵심 개념 정리',
+      desc: '학습 내용을 짧은 노트와 예제로 정리합니다.',
+    },
+    {
+      id: `week-${week.week}-resume`,
+      title: '학습 내용 이력서 반영',
+      desc: '프로젝트 경험 문장으로 바꿔 이력서에 반영합니다.',
+    },
+  ];
+};
 
 const initialSelfCheckItems = [
   {
@@ -158,8 +233,8 @@ const createSelfCheckItems = () =>
 
 const createInitialTaskState = (weeks) =>
   weeks.reduce((acc, week) => {
-    buildWeekTasks(week).forEach((task, taskIndex) => {
-      acc[task.id] = week.week === 1 || (week.week === 2 && taskIndex === 1);
+    buildWeekTasks(week).forEach((task) => {
+      acc[task.id] = false;
     });
     return acc;
   }, {});
@@ -180,7 +255,9 @@ const RoadmapPage = () => {
   const skillKeywords = useMemo(() => toArray(missingSkills), [missingSkills]);
 
   const [courses, setCourses] = useState([]);
+  const [apiWeeks, setApiWeeks] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [roadmapLoadFailed, setRoadmapLoadFailed] = useState(false);
   const [detailModal, setDetailModal] = useState(null);
   const [checkedTasks, setCheckedTasks] = useState({});
   const [selectedWeek, setSelectedWeek] = useState(1);
@@ -196,10 +273,23 @@ const RoadmapPage = () => {
             ? JSON.parse(roadmapData.content)
             : roadmapData.content;
 
-        setCourses(normalizeCourses(parsedCourses));
+        if (parsedCourses?.weeks) {
+          const normalizedWeeks = normalizeWeeks(parsedCourses.weeks);
+          const initialTaskState = createInitialTaskState(normalizedWeeks);
+
+          setApiWeeks(normalizedWeeks);
+          setCheckedTasks(initialTaskState);
+          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, initialTaskState));
+          setCourses(normalizeCourses(parsedCourses.recommendedCourses));
+        } else {
+          setApiWeeks([]);
+          setCourses(normalizeCourses(parsedCourses));
+        }
       } catch (error) {
         console.error('로드맵 데이터 파싱 에러:', error);
+        setApiWeeks([]);
         setCourses([]);
+        setRoadmapLoadFailed(true);
       } finally {
         setIsLoading(false);
       }
@@ -213,17 +303,31 @@ const RoadmapPage = () => {
       }
 
       setIsLoading(true);
+      setRoadmapLoadFailed(false);
 
       try {
         const response = await axios.post(API_BASE_URL, {
           keywords: skillKeywords,
         });
 
-        setCourses(normalizeCourses(response.data));
+        if (response.data?.weeks) {
+          const normalizedWeeks = normalizeWeeks(response.data.weeks);
+          const initialTaskState = createInitialTaskState(normalizedWeeks);
+
+          setApiWeeks(normalizedWeeks);
+          setCheckedTasks(initialTaskState);
+          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, initialTaskState));
+          setCourses(normalizeCourses(response.data.recommendedCourses));
+        } else {
+          setApiWeeks([]);
+          setCourses(normalizeCourses(response.data));
+        }
       } catch (error) {
         console.error('로드맵 API 호출 오류:', error);
         alert('로드맵을 생성하는 중 문제가 발생했습니다. 백엔드 서버를 확인해주세요.');
+        setApiWeeks([]);
         setCourses([]);
+        setRoadmapLoadFailed(true);
       } finally {
         setIsLoading(false);
       }
@@ -233,10 +337,32 @@ const RoadmapPage = () => {
   }, [roadmapData, skillKeywords]);
 
   const displayCourses = courses.length > 0 ? courses : fallbackCourses;
-  const weeks = useMemo(() => buildWeeks(skillKeywords, displayCourses), [skillKeywords, displayCourses]);
+  const fallbackWeeks = useMemo(() => buildWeeks(skillKeywords, displayCourses), [skillKeywords, displayCourses]);
+  const weeks = apiWeeks.length > 0 ? apiWeeks : fallbackWeeks;
   const currentWeek = getCurrentWeekNumber(weeks, checkedTasks);
   const selectedWeekData = weeks.find((week) => week.week === selectedWeek) || weeks[0];
   const selectedWeekTasks = buildWeekTasks(selectedWeekData);
+  const selectedLearningSteps = selectedWeekData.learningSteps || [];
+  const selectedPracticeProject = selectedWeekData.practiceProject;
+  const selectedSearchQueries = selectedWeekData.recommendedSearchQueries || [];
+  const selectedWeekCourses =
+    selectedWeekData.recommendedCourses?.length > 0
+      ? selectedWeekData.recommendedCourses
+      : courses;
+  const hasPracticeProject =
+    selectedPracticeProject &&
+    (
+      selectedPracticeProject.title ||
+      selectedPracticeProject.goal ||
+      selectedPracticeProject.requirements?.length ||
+      selectedPracticeProject.completionDefinition ||
+      selectedPracticeProject.resumeBullet
+    );
+  const hasLearningResources =
+    selectedLearningSteps.length > 0 ||
+    hasPracticeProject ||
+    selectedSearchQueries.length > 0 ||
+    selectedWeekCourses.length > 0;
   const isFutureSelected = selectedWeek > currentWeek;
   const primarySkill = skillKeywords[0] || selectedWeekData.tags[0] || selectedWeekData.title;
   const overviewSkills = skillKeywords.length > 0 ? skillKeywords.slice(0, 2) : selectedWeekData.tags.slice(0, 2);
@@ -261,14 +387,14 @@ const RoadmapPage = () => {
       : '아직 보완할 항목이 남아 있습니다.';
 
   useEffect(() => {
-    if (weeks.length === 0 || Object.keys(checkedTasks).length > 0) return;
+    if (isLoading || weeks.length === 0 || Object.keys(checkedTasks).length > 0) return;
 
     const initialTaskState = createInitialTaskState(weeks);
     const initialCurrentWeek = getCurrentWeekNumber(weeks, initialTaskState);
 
     setCheckedTasks(initialTaskState);
     setSelectedWeek(initialCurrentWeek);
-  }, [checkedTasks, weeks]);
+  }, [checkedTasks, isLoading, weeks]);
 
   const handleTaskToggle = (taskId) => {
     if (isFutureSelected) return;
@@ -342,8 +468,22 @@ const RoadmapPage = () => {
     );
   }
 
+  if (isLoading) {
+    return (
+      <main className="roadmap-page">
+        <section className="roadmap-loading">
+          <div className="loading-dot" />
+          <strong>AI가 맞춤 학습 로드맵과 추천 강의를 생성 중입니다.</strong>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="roadmap-page">
+      {roadmapLoadFailed ? (
+        <p className="roadmap-fallback-notice">기본 로드맵을 표시합니다.</p>
+      ) : null}
       <section className="week-roadmap" aria-label="주차별 로드맵">
         <div className="week-roadmap-header">
           <h2>주차별 로드맵</h2>
@@ -465,27 +605,100 @@ const RoadmapPage = () => {
             </article>
 
             <article className="roadmap-card lecture-card">
-              <h2>추천 강의</h2>
-              <div className="lecture-list">
-                {displayCourses.slice(0, 3).map((course) => (
-                  <div className="lecture-item" key={course.id}>
-                    <div className="play-icon">
-                      <Play size={14} fill="currentColor" />
-                    </div>
-                    <div>
-                      <strong>{course.title}</strong>
-                      <small>
-                        <Clock size={12} />
-                        {course.level} · {course.time} · {course.provider}
-                      </small>
-                    </div>
-                    <a href={course.url} target="_blank" rel="noopener noreferrer">
-                      강의 보기
-                      <ExternalLink size={13} />
-                    </a>
-                  </div>
-                ))}
-              </div>
+              <h2>추천 학습 자료</h2>
+              {hasLearningResources ? (
+                <div className="learning-resource-list">
+                  {selectedLearningSteps.length > 0 ? (
+                    <section className="learning-resource-section">
+                      <h3>이번 주 학습 가이드</h3>
+                      <div className="learning-step-list">
+                        {selectedLearningSteps.map((step) => (
+                          <article className="learning-step-item" key={step.id}>
+                            <span>{getLearningStepTypeLabel(step.type)}</span>
+                            <div>
+                              <strong>{step.title}</strong>
+                              {step.description ? <p>{step.description}</p> : null}
+                              {step.expectedOutput ? <small>{step.expectedOutput}</small> : null}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {hasPracticeProject ? (
+                    <section className="learning-resource-section">
+                      <h3>실습 프로젝트</h3>
+                      <article className="practice-project-box">
+                        {selectedPracticeProject.title ? <strong>{selectedPracticeProject.title}</strong> : null}
+                        {selectedPracticeProject.goal ? <p>{selectedPracticeProject.goal}</p> : null}
+                        {selectedPracticeProject.requirements?.length > 0 ? (
+                          <ul>
+                            {selectedPracticeProject.requirements.map((requirement) => (
+                              <li key={requirement}>{requirement}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        {selectedPracticeProject.completionDefinition ? (
+                          <small>{selectedPracticeProject.completionDefinition}</small>
+                        ) : null}
+                        {selectedPracticeProject.resumeBullet ? (
+                          <em>{selectedPracticeProject.resumeBullet}</em>
+                        ) : null}
+                      </article>
+                    </section>
+                  ) : null}
+
+                  {selectedSearchQueries.length > 0 ? (
+                    <section className="learning-resource-section">
+                      <h3>참고 검색어</h3>
+                      <div className="search-query-list">
+                        {selectedSearchQueries.map((query) => (
+                          <a
+                            key={query}
+                            href={createGoogleSearchUrl(query)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {query}
+                            <ExternalLink size={12} />
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+
+                  {selectedWeekCourses.length > 0 ? (
+                    <section className="learning-resource-section">
+                      <h3>보조 강의</h3>
+                      <div className="lecture-list">
+                        {selectedWeekCourses.slice(0, 3).map((course) => (
+                          <div className="lecture-item" key={course.id}>
+                            <div className="play-icon">
+                              <Play size={14} fill="currentColor" />
+                            </div>
+                            <div>
+                              <strong>{course.title}</strong>
+                              <small>
+                                <Clock size={12} />
+                                {course.level} · {course.time} · {course.provider}
+                              </small>
+                            </div>
+                            {hasValidUrl(course.url) ? (
+                              <a href={course.url} target="_blank" rel="noopener noreferrer">
+                                {course.provider === 'YouTube' ? '강의 보기' : '자료 보기'}
+                                <ExternalLink size={13} />
+                              </a>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="learning-resource-empty">이번 주 학습 자료가 없습니다.</p>
+              )}
             </article>
           </section>
         </>

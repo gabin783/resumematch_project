@@ -12,4 +12,14 @@ public class RoadmapRequestDto {
 
     // ✨ 목표 직무 이름을 받기 위해 이 줄을 추가해 주세요!
     private String targetJob;
+
+    private Long memberId;
+    private List<String> missingSkills;
+    private String learningDirection;
+    private List<String> requiredSkills;
+    private List<String> preferredSkills;
+    private List<String> ownedSkills;
+    private List<String> matchedSkills;
+    private String jobSummary;
+    private String analysis;
 }

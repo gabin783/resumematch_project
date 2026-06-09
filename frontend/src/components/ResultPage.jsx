@@ -649,7 +649,15 @@ const ResultPage = () => {
             navigate('/roadmap', {
               state: {
                 missingSkills: report.needSkills,
+                keywords: report.needSkills,
                 targetJob: report.targetJob,
+                learningDirection: report.learningDirection,
+                requiredSkills: report.jobRequiredSkills,
+                preferredSkills: report.jobPreferredSkills,
+                ownedSkills: report.ownedProgress.map((skill) => skill.name),
+                matchedSkills: report.matchedSkills,
+                jobSummary: report.jobSummary,
+                analysis: report.analysis,
               },
             })
           }

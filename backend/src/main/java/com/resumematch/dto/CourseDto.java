@@ -18,5 +18,7 @@ public class CourseDto {
     private String provider;
     private String url;
     private String time;
+    private String level;
+    private String keyword;
     private List<String> tags;
 }

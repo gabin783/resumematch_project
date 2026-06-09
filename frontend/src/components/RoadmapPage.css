@@ -158,6 +158,18 @@
   margin-top: 14px;
 }
 
+.roadmap-fallback-notice {
+  width: min(1120px, 100%);
+  margin: 0 auto 14px;
+  padding: 10px 14px;
+  border: 1px solid #d6def8;
+  border-radius: 10px;
+  background: #f8faff;
+  color: #536181;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .roadmap-card {
   min-width: 0;
   border: 1px solid #d7ddec;
@@ -563,6 +575,135 @@
 .lecture-list {
   display: grid;
   gap: 7px;
+}
+
+.learning-resource-list {
+  display: grid;
+  gap: 10px;
+}
+
+.learning-resource-section {
+  display: grid;
+  gap: 7px;
+}
+
+.learning-resource-section h3 {
+  margin: 0;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.learning-step-list {
+  display: grid;
+  gap: 7px;
+}
+
+.learning-step-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: #f4f7ff;
+}
+
+.learning-step-item span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #e3eaff;
+  color: #4f67ee;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.learning-step-item strong,
+.practice-project-box strong {
+  display: block;
+  color: #253044;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.learning-step-item p,
+.practice-project-box p {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.learning-step-item small,
+.practice-project-box small {
+  display: block;
+  margin-top: 5px;
+  color: #8a93a4;
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.practice-project-box {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8faff;
+}
+
+.practice-project-box ul {
+  display: grid;
+  gap: 4px;
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #253044;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.practice-project-box em {
+  display: block;
+  margin-top: 7px;
+  color: #4f67ee;
+  font-size: 12px;
+  line-height: 1.4;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.search-query-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.search-query-list a {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.learning-resource-empty {
+  margin: 0;
+  padding: 24px 12px;
+  border-radius: 12px;
+  background: #f4f7ff;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
 }
 
 .lecture-item {

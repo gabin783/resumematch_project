@@ -1,16 +1,14 @@
 package com.resumematch.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.resumematch.dto.CourseDto;
 import com.resumematch.dto.RoadmapRequestDto;
+import com.resumematch.dto.RoadmapResponse;
 import com.resumematch.entity.Roadmap;
 import com.resumematch.repository.RoadmapRepository;
 import com.resumematch.service.RoadmapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/roadmap")
@@ -22,22 +20,22 @@ public class RoadmapController {
     private final RoadmapRepository roadmapRepository; // ✨ 추가: DB 저장소
 
     @PostMapping("/recommend")
-    public ResponseEntity<List<CourseDto>> recommendCourses(@RequestBody RoadmapRequestDto request) {
-        // 1. 기존처럼 유튜브 API 등을 통해 로드맵 리스트 생성
-        List<CourseDto> recommendedCourses = roadmapService.generateRoadmap(request.getKeywords());
+    public ResponseEntity<RoadmapResponse> recommendCourses(@RequestBody RoadmapRequestDto request) {
+        if (request == null) {
+            request = new RoadmapRequestDto();
+        }
 
-        // 2. ✨ 생성된 로드맵을 DB에 저장하는 로직 추가
+        RoadmapResponse roadmap = roadmapService.generateRoadmap(request);
+
         try {
-            Long currentMemberId = 1L; // 임시 고정 회원 ID
+            Long currentMemberId = request.getMemberId() != null ? request.getMemberId() : 1L; // 임시 기본 회원 ID
 
-            // 프론트엔드에서 targetJob을 안 보냈을 경우를 대비한 기본값 처리
-            String jobTitle = (request.getTargetJob() != null && !request.getTargetJob().isEmpty())
-                    ? request.getTargetJob()
+            String jobTitle = (roadmap.getTargetJob() != null && !roadmap.getTargetJob().isEmpty())
+                    ? roadmap.getTargetJob()
                     : "맞춤형 AI 학습 로드맵";
 
-            // List<CourseDto> 객체를 통째로 JSON 문자열로 변환 (DB의 TEXT 컬럼에 넣기 위함)
             ObjectMapper objectMapper = new ObjectMapper();
-            String contentJson = objectMapper.writeValueAsString(recommendedCourses);
+            String contentJson = objectMapper.writeValueAsString(roadmap);
 
             Roadmap roadmapEntity = Roadmap.builder()
                     .memberId(currentMemberId)
@@ -53,8 +51,7 @@ public class RoadmapController {
             System.err.println("로드맵 DB 저장 중 오류 발생");
         }
 
-        // 3. 프론트엔드에는 정상적으로 생성된 로드맵 리스트 반환
-        return ResponseEntity.ok(recommendedCourses);
+        return ResponseEntity.ok(roadmap);
     }
 
     // ✨ 3. 마이페이지에서 사용할 로드맵 삭제 API
