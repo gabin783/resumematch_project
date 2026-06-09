@@ -5,34 +5,255 @@ import com.resumematch.dto.RoadmapRequestDto;
 import com.resumematch.dto.RoadmapResponse;
 import com.resumematch.dto.RoadmapWeekDto;
 import lombok.RequiredArgsConstructor;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 public class RoadmapService {
     private static final Logger log = LoggerFactory.getLogger(RoadmapService.class);
 
-    private static final String YOUTUBE_API_URL = "https://www.googleapis.com/youtube/v3/search";
-    private static final int YOUTUBE_SEARCH_LIMIT = 10;
-    private static final int RESOURCE_LIMIT_PER_WEEK = 3;
     private static final String DEFAULT_TARGET_JOB = "맞춤형 AI 학습 로드맵";
 
-    @Value("${youtube.api.key:}")
-    private String apiKey;
-
     private final RoadmapLlmGenerateService roadmapLlmGenerateService;
+
+    private enum ResourceType {
+        FREE,
+        PAID,
+        OFFICIAL
+    }
+
+    private record CuratedCourse(
+            ResourceType resourceType,
+            String title,
+            String provider,
+            String url,
+            List<String> keywords,
+            String level,
+            String time,
+            List<String> tags
+    ) {
+    }
+
+    private static final List<CuratedCourse> CURATED_COURSES = List.of(
+            new CuratedCourse(
+                    ResourceType.FREE,
+                    "생활코딩 Java 입문",
+                    "생활코딩",
+                    "https://opentutorials.org/course/1223",
+                    List.of("Java", "자바", "프로그래밍기초"),
+                    "입문",
+                    "Java 기본 문법과 프로그래밍 기초",
+                    List.of("Java", "무료", "입문")
+            ),
+            new CuratedCourse(
+                    ResourceType.FREE,
+                    "생활코딩 Java 객체지향 프로그래밍",
+                    "생활코딩",
+                    "https://opentutorials.org/course/4074",
+                    List.of("Java", "자바", "OOP", "객체지향", "클래스", "상속", "다형성"),
+                    "입문",
+                    "객체지향 개념과 Java 클래스 구조",
+                    List.of("Java", "OOP", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.FREE,
+                    "MDN JavaScript Guide",
+                    "MDN",
+                    "https://developer.mozilla.org/ko/docs/Web/JavaScript/Guide",
+                    List.of("JavaScript", "JS", "자바스크립트", "웹", "프론트엔드"),
+                    "입문",
+                    "JavaScript 핵심 개념 정리",
+                    List.of("JavaScript", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.FREE,
+                    "Pro Git Book 한국어",
+                    "Git",
+                    "https://git-scm.com/book/ko/v2",
+                    List.of("Git", "GitHub", "형상관리", "버전관리"),
+                    "입문",
+                    "Git 기본 사용법과 브랜치 흐름",
+                    List.of("Git", "GitHub", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Oracle Java Documentation",
+                    "Oracle",
+                    "https://docs.oracle.com/en/java/",
+                    List.of("Java", "자바"),
+                    "참고",
+                    "Java 공식 문서와 API 참고 자료",
+                    List.of("Java", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Spring 공식 Guides",
+                    "Spring",
+                    "https://spring.io/guides",
+                    List.of("Spring", "SpringBoot", "Spring Boot", "SpringMVC", "Spring MVC", "RESTAPI", "REST API", "REST", "API", "백엔드"),
+                    "입문",
+                    "Spring Boot와 REST API 예제",
+                    List.of("Spring Boot", "REST API", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Spring Boot Reference Documentation",
+                    "Spring",
+                    "https://docs.spring.io/spring-boot/index.html",
+                    List.of("SpringBoot", "Spring Boot", "Spring", "백엔드"),
+                    "참고",
+                    "Spring Boot 공식 레퍼런스 문서",
+                    List.of("Spring Boot", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Spring Data JPA 공식 문서",
+                    "Spring",
+                    "https://spring.io/projects/spring-data-jpa",
+                    List.of("JPA", "Hibernate", "SpringDataJPA", "엔티티", "데이터베이스"),
+                    "참고",
+                    "Spring Data JPA 개념과 프로젝트 문서",
+                    List.of("JPA", "Spring", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "React 공식 Learn 문서",
+                    "React",
+                    "https://react.dev/learn",
+                    List.of("React", "리액트", "컴포넌트", "프론트엔드"),
+                    "입문",
+                    "React 컴포넌트와 상태 관리 기초",
+                    List.of("React", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "TypeScript Handbook",
+                    "TypeScript",
+                    "https://www.typescriptlang.org/docs/handbook/intro.html",
+                    List.of("TypeScript", "TS", "타입스크립트"),
+                    "입문",
+                    "TypeScript 핵심 문법과 타입 시스템 공식 문서",
+                    List.of("TypeScript", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Redux Toolkit Quick Start",
+                    "Redux Toolkit",
+                    "https://redux-toolkit.js.org/tutorials/quick-start",
+                    List.of("ReduxToolkit", "Redux Toolkit", "Redux", "상태관리"),
+                    "입문",
+                    "Redux Toolkit 상태 관리 공식 빠른 시작",
+                    List.of("Redux Toolkit", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Cypress 첫 E2E 테스트",
+                    "Cypress",
+                    "https://docs.cypress.io/app/end-to-end-testing/writing-your-first-end-to-end-test",
+                    List.of("Cypress", "E2E", "테스트", "UI테스트"),
+                    "입문",
+                    "Cypress 공식 E2E 테스트 작성 가이드",
+                    List.of("Cypress", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Docker Get Started",
+                    "Docker",
+                    "https://docs.docker.com/get-started/",
+                    List.of("Docker", "도커", "컨테이너", "배포"),
+                    "입문",
+                    "Docker 컨테이너 기본 개념과 실행 흐름",
+                    List.of("Docker", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "AWS EC2 시작하기",
+                    "AWS",
+                    "https://docs.aws.amazon.com/ko_kr/AWSEC2/latest/UserGuide/EC2_GetStarted.html",
+                    List.of("AWS", "EC2", "Linux", "리눅스", "클라우드", "배포"),
+                    "입문",
+                    "EC2 인스턴스 생성과 서버 운영 기초",
+                    List.of("AWS", "EC2", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "GitHub Actions 공식 문서",
+                    "GitHub",
+                    "https://docs.github.com/ko/actions",
+                    List.of("CI", "CD", "CICD", "CI/CD", "GitHubActions", "GitHub Actions", "배포자동화", "자동화"),
+                    "참고",
+                    "GitHub Actions 기반 CI/CD 구성",
+                    List.of("CI/CD", "GitHub", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Kubernetes Tutorials",
+                    "Kubernetes",
+                    "https://kubernetes.io/docs/tutorials/",
+                    List.of("Kubernetes", "K8s", "쿠버네티스", "컨테이너오케스트레이션"),
+                    "참고",
+                    "Kubernetes 공식 튜토리얼",
+                    List.of("Kubernetes", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Terraform Tutorials",
+                    "Terraform",
+                    "https://developer.hashicorp.com/terraform/tutorials",
+                    List.of("Terraform", "IaC", "인프라자동화"),
+                    "참고",
+                    "Terraform 공식 튜토리얼",
+                    List.of("Terraform", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Redis Docs",
+                    "Redis",
+                    "https://redis.io/docs/latest/",
+                    List.of("Redis", "Cache", "캐시", "인메모리"),
+                    "참고",
+                    "Redis 공식 문서",
+                    List.of("Redis", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "Apache Kafka Quickstart",
+                    "Apache Kafka",
+                    "https://kafka.apache.org/quickstart",
+                    List.of("Kafka", "ApacheKafka", "메시징", "Event", "이벤트", "스트리밍"),
+                    "입문",
+                    "Kafka 공식 빠른 시작 가이드",
+                    List.of("Kafka", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "MySQL 공식 문서",
+                    "MySQL",
+                    "https://dev.mysql.com/doc/",
+                    List.of("MySQL", "SQL", "Database", "DB", "데이터베이스"),
+                    "참고",
+                    "MySQL 기본 문서와 SQL 참고 자료",
+                    List.of("MySQL", "DB", "공식", "무료")
+            ),
+            new CuratedCourse(
+                    ResourceType.OFFICIAL,
+                    "OpenAI API Docs",
+                    "OpenAI",
+                    "https://platform.openai.com/docs",
+                    List.of("OpenAI", "AI", "LLM", "생성형AI", "AI도구"),
+                    "참고",
+                    "OpenAI API와 LLM 활용 공식 문서",
+                    List.of("AI", "LLM", "공식", "무료")
+            )
+    );
 
     public RoadmapResponse generateRoadmap(RoadmapRequestDto request) {
         RoadmapResponse roadmap;
@@ -53,469 +274,132 @@ public class RoadmapService {
             return;
         }
 
-        long idCounter = 1;
+        long idCounter = 1L;
+
         for (RoadmapWeekDto week : roadmap.getWeeks()) {
-            List<CourseDto> resources = buildRecommendedResources(week, idCounter);
+            List<CourseDto> resources = buildCuratedCourses(week, idCounter);
             idCounter += resources.size();
             week.setRecommendedCourses(resources);
         }
     }
 
-    private List<CourseDto> buildRecommendedResources(RoadmapWeekDto week, long startId) {
-        List<CourseDto> resources = new ArrayList<>();
-        String primarySkill = firstOrDefault(week.getFocusSkills(), week.getTitle());
-
-        List<CourseDto> youtubeCourses = searchYoutubeCourses(primarySkill, startId);
-        resources.addAll(youtubeCourses);
-
-        long nextId = startId + resources.size();
-
-        if (resources.size() < RESOURCE_LIMIT_PER_WEEK) {
-            resources.add(buildSearchResource(nextId++, primarySkill, week));
+    private List<CourseDto> buildCuratedCourses(RoadmapWeekDto week, long startId) {
+        if (week == null) {
+            return List.of();
         }
 
-        if (resources.size() < RESOURCE_LIMIT_PER_WEEK) {
-            resources.add(buildPracticeResource(nextId++, primarySkill, week));
-        }
-
-        if (resources.size() < RESOURCE_LIMIT_PER_WEEK) {
-            resources.add(buildReferenceResource(nextId, primarySkill));
-        }
-
-        return resources.stream()
-                .limit(RESOURCE_LIMIT_PER_WEEK)
+        List<String> normalizedTargets = collectMatchTargets(week).stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(this::normalizeCourseKeyword)
                 .toList();
-    }
 
-    private List<CourseDto> searchYoutubeCourses(String keyword, long startId) {
-        if (apiKey == null || apiKey.isBlank() || keyword == null || keyword.isBlank()) {
+        if (normalizedTargets.isEmpty()) {
             return List.of();
         }
 
-        try {
-            RestTemplate restTemplate = new RestTemplate();
-            String query = URLEncoder.encode(buildYoutubeSearchKeyword(keyword), StandardCharsets.UTF_8);
-            String url = String.format(
-                    "%s?part=snippet&q=%s&key=%s&maxResults=%d&type=video&regionCode=KR&relevanceLanguage=ko&safeSearch=moderate&order=relevance",
-                    YOUTUBE_API_URL,
-                    query,
-                    apiKey,
-                    YOUTUBE_SEARCH_LIMIT
-            );
+        List<CourseDto> result = new ArrayList<>();
+        Set<String> selectedUrls = new LinkedHashSet<>();
+        long nextId = startId;
 
-            String response = restTemplate.getForObject(url, String.class);
-            if (response == null || response.isBlank()) {
-                return List.of();
+        for (ResourceType resourceType : List.of(ResourceType.FREE, ResourceType.PAID, ResourceType.OFFICIAL)) {
+            CuratedCourse course = findFirstMatchingCourse(resourceType, normalizedTargets, selectedUrls);
+            if (course == null) {
+                continue;
             }
 
-            JSONObject jsonResponse = new JSONObject(response);
-            JSONArray items = jsonResponse.optJSONArray("items");
-            if (items == null || items.isEmpty()) {
-                return List.of();
-            }
-
-            List<CourseDto> courses = new ArrayList<>();
-
-            for (int index = 0; index < items.length(); index++) {
-                if (!courses.isEmpty()) {
-                    break;
-                }
-
-                JSONObject item = items.optJSONObject(index);
-                if (item == null) {
-                    continue;
-                }
-
-                JSONObject id = item.optJSONObject("id");
-                JSONObject snippet = item.optJSONObject("snippet");
-                if (id == null || snippet == null) {
-                    continue;
-                }
-
-                String videoId = id.optString("videoId", "");
-                String title = cleanYoutubeTitle(snippet.optString("title", ""));
-
-                if (videoId.isBlank() || title.isBlank()) {
-                    continue;
-                }
-
-                if (isBadYoutubeCourse(title)) {
-                    log.info("Filtered YouTube course: keyword={}, title={}", keyword, title);
-                    continue;
-                }
-
-                if (!isRelevantYoutubeCourse(keyword, title)) {
-                    log.info("Filtered unrelated YouTube course: keyword={}, title={}", keyword, title);
-                    continue;
-                }
-
-                courses.add(CourseDto.builder()
-                        .id(startId)
-                        .step("추천 강의")
-                        .title(title)
-                        .provider("YouTube")
-                        .url("https://www.youtube.com/watch?v=" + videoId)
-                        .time("영상 길이에 따름")
-                        .level("입문")
-                        .keyword(keyword)
-                        .tags(List.of(keyword, "강의"))
-                        .build());
-            }
-
-            return courses;
-        } catch (Exception e) {
-            log.warn("YouTube course search failed: keyword={}, reason={}", keyword, e.getMessage());
-            return List.of();
+            result.add(toCourseDto(nextId++, course));
+            selectedUrls.add(course.url());
         }
+
+        return result;
     }
 
-    private CourseDto buildSearchResource(long id, String keyword, RoadmapWeekDto week) {
-        String searchKeyword = buildLearningSearchKeyword(keyword, week);
-        String encodedQuery = URLEncoder.encode(searchKeyword, StandardCharsets.UTF_8);
+    private List<String> collectMatchTargets(RoadmapWeekDto week) {
+        List<String> matchTargets = new ArrayList<>();
 
-        return CourseDto.builder()
-                .id(id)
-                .step("추천 검색")
-                .title(searchKeyword)
-                .provider("검색 키워드")
-                .url("https://www.google.com/search?q=" + encodedQuery)
-                .time("필요한 자료 선택")
-                .level("입문")
-                .keyword(keyword)
-                .tags(List.of(keyword, "검색"))
-                .build();
+        if (week.getFocusSkills() != null) {
+            matchTargets.addAll(week.getFocusSkills());
+        }
+
+        if (week.getTitle() != null && !week.getTitle().isBlank()) {
+            matchTargets.add(week.getTitle());
+        }
+
+        if (week.getGoal() != null && !week.getGoal().isBlank()) {
+            matchTargets.add(week.getGoal());
+        }
+
+        return matchTargets;
     }
 
-    private CourseDto buildPracticeResource(long id, String keyword, RoadmapWeekDto week) {
-        String title = buildPracticeTitle(keyword, week);
-
-        return CourseDto.builder()
-                .id(id)
-                .step("실습 과제")
-                .title(title)
-                .provider("실습 과제")
-                .url("#")
-                .time("1~2시간")
-                .level("실습")
-                .keyword(keyword)
-                .tags(List.of(keyword, "실습"))
-                .build();
+    private CuratedCourse findFirstMatchingCourse(ResourceType resourceType, List<String> normalizedTargets, Set<String> selectedUrls) {
+        return CURATED_COURSES.stream()
+                .filter(course -> course.resourceType() == resourceType)
+                .filter(this::hasValidCourseUrl)
+                .filter(course -> !selectedUrls.contains(course.url()))
+                .filter(course -> matchesCuratedCourse(course, normalizedTargets))
+                .findFirst()
+                .orElse(null);
     }
 
-    private CourseDto buildReferenceResource(long id, String keyword) {
-        String title = buildReferenceTitle(keyword);
-        String url = buildReferenceUrl(keyword);
-
-        return CourseDto.builder()
-                .id(id)
-                .step("참고 자료")
-                .title(title)
-                .provider("공식 문서/참고 자료")
-                .url(url)
-                .time("필요한 부분 확인")
-                .level("참고")
-                .keyword(keyword)
-                .tags(List.of(keyword, "문서"))
-                .build();
-    }
-
-    private String buildYoutubeSearchKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return "프로그래밍 입문 강의 한국어";
-        }
-
-        String normalized = keyword.trim();
-        String lower = normalized.toLowerCase(Locale.ROOT);
-
-        if (lower.contains("spring")) {
-            return "Spring Boot 백엔드 REST API 실습 강의 한국어";
-        }
-
-        if (lower.contains("java") || lower.contains("oop") || lower.contains("객체지향")) {
-            return "Java 객체지향 입문 강의 한국어";
-        }
-
-        if (lower.contains("docker")) {
-            return "Docker 배포 실습 강의 한국어";
-        }
-
-        if (lower.contains("jpa") || lower.contains("hibernate")) {
-            return "Spring Boot JPA 실습 강의 한국어";
-        }
-
-        if (lower.contains("kubernetes") || lower.contains("k8s")) {
-            return "Kubernetes 기초 강의 한국어";
-        }
-
-        if (lower.contains("mysql") || lower.contains("maria") || lower.contains("database") || lower.contains("db")) {
-            return "MySQL 데이터베이스 기초 강의 한국어";
-        }
-
-        if (lower.contains("rest")) {
-            return "REST API 개발 실습 강의 한국어";
-        }
-
-        if (lower.contains("ci") || lower.contains("cd") || lower.contains("jenkins")) {
-            return "Jenkins CI CD 배포 자동화 강의 한국어";
-        }
-
-        return normalized + " 개발 입문 강의 한국어";
-    }
-
-    private String buildLearningSearchKeyword(String keyword, RoadmapWeekDto week) {
-        String normalized = keyword == null || keyword.isBlank() ? firstOrDefault(week.getFocusSkills(), week.getTitle()) : keyword.trim();
-        String lower = normalized.toLowerCase(Locale.ROOT);
-
-        if (lower.contains("java") || lower.contains("oop") || lower.contains("객체지향")) {
-            return "Java 객체지향 입문 강의 한국어 클래스 인터페이스 상속";
-        }
-
-        if (lower.contains("spring")) {
-            return "Spring Boot REST API CRUD 실습 강의 한국어";
-        }
-
-        if (lower.contains("jpa") || lower.contains("hibernate")) {
-            return "Spring Boot JPA 게시판 CRUD 실습 강의 한국어";
-        }
-
-        if (lower.contains("docker")) {
-            return "Docker Spring Boot 배포 실습 강의 한국어";
-        }
-
-        if (lower.contains("kubernetes") || lower.contains("k8s")) {
-            return "Kubernetes 기초 배포 실습 강의 한국어";
-        }
-
-        if (lower.contains("mysql") || lower.contains("maria") || lower.contains("database") || lower.contains("db")) {
-            return "MySQL 데이터베이스 설계 SQL 기초 강의 한국어";
-        }
-
-        if (lower.contains("rest")) {
-            return "REST API 설계 CRUD 실습 강의 한국어";
-        }
-
-        if (lower.contains("ci") || lower.contains("cd") || lower.contains("jenkins")) {
-            return "Jenkins CI CD Spring Boot 배포 자동화 강의 한국어";
-        }
-
-        return normalized + " 개발 실습 강의 한국어";
-    }
-
-    private String buildPracticeTitle(String keyword, RoadmapWeekDto week) {
-        String normalized = keyword == null || keyword.isBlank() ? week.getTitle() : keyword.trim();
-        String lower = normalized.toLowerCase(Locale.ROOT);
-
-        if (lower.contains("java") || lower.contains("oop") || lower.contains("객체지향")) {
-            return "Java 콘솔 CRUD 프로그램을 만들고 객체지향 구조로 정리하기";
-        }
-
-        if (lower.contains("spring")) {
-            return "Spring Boot로 간단한 REST API를 만들고 GitHub에 정리하기";
-        }
-
-        if (lower.contains("jpa") || lower.contains("hibernate")) {
-            return "JPA 엔티티 관계를 설계하고 게시글 CRUD를 구현하기";
-        }
-
-        if (lower.contains("docker")) {
-            return "Spring Boot 프로젝트를 Docker 이미지로 빌드하고 실행하기";
-        }
-
-        if (lower.contains("kubernetes") || lower.contains("k8s")) {
-            return "간단한 애플리케이션을 Kubernetes 로컬 환경에 배포해보기";
-        }
-
-        if (lower.contains("mysql") || lower.contains("maria") || lower.contains("database") || lower.contains("db")) {
-            return "MySQL 테이블을 설계하고 기본 CRUD 쿼리를 작성하기";
-        }
-
-        if (lower.contains("rest")) {
-            return "REST API 요청/응답 구조를 설계하고 CRUD 엔드포인트 만들기";
-        }
-
-        if (lower.contains("ci") || lower.contains("cd") || lower.contains("jenkins")) {
-            return "GitHub Actions 또는 Jenkins로 간단한 빌드 자동화 구성하기";
-        }
-
-        return normalized + "를 활용한 작은 실습 결과물 만들기";
-    }
-
-    private String buildReferenceTitle(String keyword) {
-        String normalized = keyword == null || keyword.isBlank() ? "개발 학습" : keyword.trim();
-        String lower = normalized.toLowerCase(Locale.ROOT);
-
-        if (lower.contains("java") || lower.contains("oop") || lower.contains("객체지향")) {
-            return "Java 공식 튜토리얼과 객체지향 개념 참고";
-        }
-
-        if (lower.contains("spring")) {
-            return "Spring 공식 가이드에서 REST API 예제 확인";
-        }
-
-        if (lower.contains("jpa") || lower.contains("hibernate")) {
-            return "Spring Data JPA 공식 문서와 예제 확인";
-        }
-
-        if (lower.contains("docker")) {
-            return "Docker 공식 Getting Started 문서 확인";
-        }
-
-        if (lower.contains("kubernetes") || lower.contains("k8s")) {
-            return "Kubernetes 공식 기초 문서 확인";
-        }
-
-        if (lower.contains("mysql") || lower.contains("maria") || lower.contains("database") || lower.contains("db")) {
-            return "MySQL 공식 문서와 SQL 기본 문법 확인";
-        }
-
-        if (lower.contains("rest")) {
-            return "REST API 설계 원칙과 예제 확인";
-        }
-
-        if (lower.contains("ci") || lower.contains("cd") || lower.contains("jenkins")) {
-            return "CI/CD 기본 개념과 Jenkins 문서 확인";
-        }
-
-        return normalized + " 공식 문서 또는 신뢰 가능한 튜토리얼 확인";
-    }
-
-    private String buildReferenceUrl(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return "https://www.google.com/search?q=programming+tutorial";
-        }
-
-        String lower = keyword.toLowerCase(Locale.ROOT);
-
-        if (lower.contains("java") || lower.contains("oop") || lower.contains("객체지향")) {
-            return "https://docs.oracle.com/javase/tutorial/";
-        }
-
-        if (lower.contains("spring")) {
-            return "https://spring.io/guides";
-        }
-
-        if (lower.contains("jpa") || lower.contains("hibernate")) {
-            return "https://spring.io/projects/spring-data-jpa";
-        }
-
-        if (lower.contains("docker")) {
-            return "https://docs.docker.com/get-started/";
-        }
-
-        if (lower.contains("kubernetes") || lower.contains("k8s")) {
-            return "https://kubernetes.io/docs/tutorials/";
-        }
-
-        if (lower.contains("mysql") || lower.contains("maria") || lower.contains("database") || lower.contains("db")) {
-            return "https://dev.mysql.com/doc/";
-        }
-
-        if (lower.contains("rest")) {
-            return "https://restfulapi.net/";
-        }
-
-        if (lower.contains("ci") || lower.contains("cd") || lower.contains("jenkins")) {
-            return "https://www.jenkins.io/doc/";
-        }
-
-        String query = URLEncoder.encode(keyword + " 공식 문서 튜토리얼", StandardCharsets.UTF_8);
-        return "https://www.google.com/search?q=" + query;
-    }
-
-    private boolean isBadYoutubeCourse(String title) {
-        if (title == null || title.isBlank()) {
-            return true;
-        }
-
-        String normalized = title.toLowerCase(Locale.ROOT);
-
-        List<String> blockedKeywords = List.of(
-                "#shorts",
-                "shorts",
-                "쇼츠",
-                "ㅋㅋ",
-                "ㅎㅎ",
-                "존내",
-                "존나",
-                "개발자 특",
-                "개발자특",
-                "개발자 특징",
-                "브이로그",
-                "vlog",
-                "리액션",
-                "reaction",
-                "웃긴",
-                "짤",
-                "밈",
-                "meme",
-                "썰",
-                "하루",
-                "일상",
-                "premium",
-                "bandicam"
-        );
-
-        return blockedKeywords.stream().anyMatch(normalized::contains);
-    }
-
-    private boolean isRelevantYoutubeCourse(String keyword, String title) {
-        if (keyword == null || keyword.isBlank() || title == null || title.isBlank()) {
+    private boolean matchesCuratedCourse(CuratedCourse course, List<String> normalizedTargets) {
+        if (course == null || course.keywords() == null || normalizedTargets == null || normalizedTargets.isEmpty()) {
             return false;
         }
 
-        String key = keyword.toLowerCase(Locale.ROOT);
-        String normalizedTitle = title.toLowerCase(Locale.ROOT);
-
-        if (key.contains("java") || key.contains("oop") || key.contains("객체지향")) {
-            return containsAny(normalizedTitle, List.of("java", "자바", "객체지향", "oop", "spring"));
-        }
-
-        if (key.contains("spring")) {
-            return containsAny(normalizedTitle, List.of("spring", "스프링", "spring boot", "스프링부트"));
-        }
-
-        if (key.contains("jpa") || key.contains("hibernate")) {
-            return containsAny(normalizedTitle, List.of("jpa", "hibernate", "스프링", "spring"));
-        }
-
-        if (key.contains("docker")) {
-            return containsAny(normalizedTitle, List.of("docker", "도커"));
-        }
-
-        if (key.contains("kubernetes") || key.contains("k8s")) {
-            return containsAny(normalizedTitle, List.of("kubernetes", "k8s", "쿠버네티스"));
-        }
-
-        if (key.contains("mysql") || key.contains("maria") || key.contains("database") || key.contains("db")) {
-            return containsAny(normalizedTitle, List.of("mysql", "mariadb", "db", "database", "데이터베이스", "sql"));
-        }
-
-        if (key.contains("rest")) {
-            return containsAny(normalizedTitle, List.of("rest", "api", "spring", "스프링"));
-        }
-
-        if (key.contains("ci") || key.contains("cd") || key.contains("jenkins")) {
-            return containsAny(normalizedTitle, List.of("jenkins", "ci", "cd", "배포", "자동화"));
-        }
-
-        return normalizedTitle.contains(key);
+        return course.keywords().stream()
+                .filter(keyword -> keyword != null && !keyword.isBlank())
+                .map(this::normalizeCourseKeyword)
+                .anyMatch(courseKeyword -> normalizedTargets.stream()
+                        .anyMatch(target -> isKeywordMatch(target, courseKeyword)));
     }
 
-    private boolean containsAny(String text, List<String> keywords) {
-        return keywords.stream().anyMatch(text::contains);
+    private boolean isKeywordMatch(String target, String courseKeyword) {
+        if (target == null || courseKeyword == null || target.isBlank() || courseKeyword.isBlank()) {
+            return false;
+        }
+
+        if (target.equals(courseKeyword)) {
+            return true;
+        }
+
+        return target.length() >= 5
+                && courseKeyword.length() >= 5
+                && (target.contains(courseKeyword) || courseKeyword.contains(target));
     }
 
-    private String cleanYoutubeTitle(String title) {
-        if (title == null) {
+    private boolean hasValidCourseUrl(CuratedCourse course) {
+        return course != null
+                && course.url() != null
+                && !course.url().isBlank()
+                && !"#".equals(course.url().trim());
+    }
+
+    private CourseDto toCourseDto(long id, CuratedCourse course) {
+        return CourseDto.builder()
+                .id(id)
+                .step("보조 강의")
+                .title(course.title())
+                .provider(course.provider())
+                .url(course.url())
+                .time(course.time())
+                .level(course.level())
+                .keyword(firstOrDefault(course.keywords(), course.title()))
+                .tags(course.tags())
+                .build();
+    }
+
+    private String normalizeCourseKeyword(String value) {
+        if (value == null) {
             return "";
         }
 
-        return title
-                .replace("&amp;", "&")
-                .replace("&lt;", "<")
-                .replace("&gt;", ">")
-                .replace("&quot;", "\"")
-                .replace("&#39;", "'")
+        return value.toLowerCase(Locale.ROOT)
+                .replace(" ", "")
+                .replace("-", "")
+                .replace("_", "")
+                .replace("/", "")
+                .replace(".", "")
                 .trim();
     }
 
@@ -538,12 +422,12 @@ public class RoadmapService {
                     .focusSkills(List.of(skill))
                     .tasks(List.of(
                             skill + " 핵심 개념을 정리합니다.",
-                            skill + "를 활용한 작은 예제를 구현합니다.",
+                            skill + "를 사용한 작은 예제를 구현합니다.",
                             "학습 결과를 GitHub와 이력서 문장으로 정리합니다."
                     ))
                     .completionCriteria(List.of(
                             skill + " 핵심 개념을 설명할 수 있습니다.",
-                            skill + "를 활용한 실습 결과물을 만들었습니다.",
+                            skill + "를 사용한 실습 결과물을 만들었습니다.",
                             "이력서에 반영할 경험 문장을 작성했습니다."
                     ))
                     .selfCheckItems(List.of(
