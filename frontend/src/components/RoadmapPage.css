@@ -163,6 +163,7 @@
 
 .roadmap-resource-grid {
   margin-top: 14px;
+  align-items: stretch;
 }
 
 .roadmap-fallback-notice {
@@ -203,6 +204,24 @@
 
 .lecture-card {
   min-height: unset;
+  height: 100%;
+  align-self: stretch;
+  overflow: visible;
+}
+
+.roadmap-resource-grid > .roadmap-card {
+  height: 100%;
+}
+
+.curriculum-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.curriculum-box {
+  flex: 1;
+  min-height: 210px;
 }
 
 .week-card {
@@ -410,9 +429,17 @@
 
 .task-item strong {
   display: block;
+  overflow: hidden;
   color: #253044;
   font-size: 14px;
+  line-height: 1.35;
   font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-item > div {
+  min-width: 0;
 }
 
 .task-item small {
@@ -469,17 +496,26 @@
 }
 
 .curriculum-box {
-  min-height: 132px;
+  flex: 1;
+  min-height: 210px;
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr) auto;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    "icon content"
+    ". content"
+    "action action";
   align-items: start;
+  align-content: stretch;
   gap: 14px;
   padding: 16px;
   border-radius: 12px;
   background: #f4f7ff;
+  overflow: visible;
 }
 
 .curriculum-icon {
+  grid-area: icon;
   width: 46px;
   height: 46px;
   display: grid;
@@ -490,6 +526,7 @@
 }
 
 .completion-content {
+  grid-area: content;
   min-width: 0;
 }
 
@@ -580,7 +617,11 @@
 }
 
 .curriculum-box button {
+  grid-area: action;
+  justify-self: end;
+  min-width: 150px;
   align-self: end;
+  margin-top: auto;
   border: 1px solid #8ea0ff;
   background: #fff;
   color: #4f67ee;
@@ -606,12 +647,14 @@
 .learning-resource-list {
   display: grid;
   gap: 9px;
+  overflow: visible;
 }
 
 .learning-resource-section {
   display: grid;
   gap: 6px;
   min-width: 0;
+  overflow: visible;
 }
 
 .learning-resource-section h3 {
@@ -624,6 +667,16 @@
 .learning-step-list {
   display: grid;
   gap: 6px;
+  overflow: visible;
+}
+
+.learning-step-preview {
+  gap: 8px;
+}
+
+.learning-step-preview .learning-step-item {
+  min-height: 42px;
+  align-items: center;
 }
 
 .learning-step-item {
@@ -634,6 +687,8 @@
   border-radius: 10px;
   background: #f4f7ff;
   min-width: 0;
+  height: auto;
+  overflow: visible;
 }
 
 .learning-step-item span {
@@ -662,26 +717,32 @@
 .learning-step-item p,
 .practice-project-box p {
   margin: 4px 0 0;
+  overflow: visible;
   color: #667085;
   font-size: 12px;
   line-height: 1.45;
   font-weight: 700;
+  white-space: normal;
 }
 
 .learning-step-item small,
 .practice-project-box small {
   display: block;
   margin-top: 5px;
+  overflow: visible;
   color: #8a93a4;
   font-size: 11px;
   line-height: 1.4;
   font-weight: 800;
+  white-space: normal;
 }
 
 .practice-project-box {
   padding: 10px 12px;
   border-radius: 10px;
   background: #f8faff;
+  height: auto;
+  overflow: visible;
 }
 
 .practice-project-box ul {
@@ -689,6 +750,7 @@
   gap: 4px;
   margin: 8px 0 0;
   padding-left: 18px;
+  overflow: visible;
   color: #253044;
   font-size: 12px;
   line-height: 1.4;
@@ -698,17 +760,20 @@
 .practice-project-box em {
   display: block;
   margin-top: 7px;
+  overflow: visible;
   color: #4f67ee;
   font-size: 12px;
   line-height: 1.4;
   font-style: normal;
   font-weight: 900;
+  white-space: normal;
 }
 
 .search-query-list {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+  overflow: visible;
 }
 
 .search-query-list a {
@@ -723,6 +788,7 @@
   font-size: 12px;
   font-weight: 900;
   text-decoration: none;
+  white-space: normal;
 }
 
 .learning-resource-empty {
@@ -740,11 +806,13 @@
   min-height: 38px;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 10px;
   padding: 6px 10px;
   border-radius: 10px;
   background: #f4f7ff;
+  height: auto;
+  overflow: visible;
 }
 
 .play-icon {
@@ -1151,6 +1219,13 @@
   .curriculum-box,
   .lecture-item {
     grid-template-columns: 1fr;
+  }
+
+  .curriculum-box {
+    grid-template-areas:
+      "icon"
+      "content"
+      "action";
   }
 
   .curriculum-box button,

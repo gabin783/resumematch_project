@@ -610,96 +610,29 @@ const RoadmapPage = () => {
 
             <article className="roadmap-card lecture-card">
               <h2>추천 학습 자료</h2>
-              {hasLearningResources ? (
-                <div className="learning-resource-list">
-                  {selectedLearningSteps.length > 0 ? (
-                    <section className="learning-resource-section">
-                      <h3>이번 주 학습 가이드</h3>
-                      <div className="learning-step-list">
-                        {selectedLearningSteps.map((step) => (
-                          <article className="learning-step-item" key={step.id}>
-                            <span>{getLearningStepTypeLabel(step.type)}</span>
-                            <div>
-                              <strong>{step.title}</strong>
-                              {step.description ? <p>{step.description}</p> : null}
-                              {step.expectedOutput ? <small>{step.expectedOutput}</small> : null}
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  {hasPracticeProject ? (
-                    <section className="learning-resource-section">
-                      <h3>실습 프로젝트</h3>
-                      <article className="practice-project-box">
-                        {selectedPracticeProject.title ? <strong>{selectedPracticeProject.title}</strong> : null}
-                        {selectedPracticeProject.goal ? <p>{selectedPracticeProject.goal}</p> : null}
-                        {selectedPracticeProject.requirements?.length > 0 ? (
-                          <ul>
-                            {selectedPracticeProject.requirements.map((requirement) => (
-                              <li key={requirement}>{requirement}</li>
-                            ))}
-                          </ul>
-                        ) : null}
-                        {selectedPracticeProject.completionDefinition ? (
-                          <small>{selectedPracticeProject.completionDefinition}</small>
-                        ) : null}
-                        {selectedPracticeProject.resumeBullet ? (
-                          <em>{selectedPracticeProject.resumeBullet}</em>
-                        ) : null}
-                      </article>
-                    </section>
-                  ) : null}
-
-                  {selectedSearchQueries.length > 0 ? (
-                    <section className="learning-resource-section">
-                      <h3>참고 검색어</h3>
-                      <div className="search-query-list">
-                        {selectedSearchQueries.map((query) => (
-                          <a
-                            key={query}
-                            href={createGoogleSearchUrl(query)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {query}
-                            <ExternalLink size={12} />
-                          </a>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-
-                  {selectedWeekCourses.length > 0 ? (
-                    <section className="learning-resource-section">
-                      <h3>보조 강의</h3>
-                      <div className="lecture-list">
-                        {selectedWeekCourses.slice(0, 3).map((course) => (
-                          <div className="lecture-item" key={course.id}>
-                            <div className="play-icon">
-                              <Play size={14} fill="currentColor" />
-                            </div>
-                            <div>
-                              <strong>{course.title}</strong>
-                              <small>
-                                <Clock size={12} />
-                                {course.level} · {course.time} · {course.provider}
-                              </small>
-                            </div>
-                            {hasValidUrl(course.url) ? (
-                              <a href={course.url} target="_blank" rel="noopener noreferrer">
-                                {course.provider === 'YouTube' ? '강의 보기' : '자료 보기'}
-                                <ExternalLink size={13} />
-                              </a>
-                            ) : null}
+              {selectedLearningSteps.length > 0 ? (
+                <>
+                  <section className="learning-resource-section">
+                    <h3>이번 주 학습 가이드</h3>
+                    <div className="learning-step-list learning-step-preview">
+                      {selectedLearningSteps.slice(0, 3).map((step) => (
+                        <article className="learning-step-item" key={step.id}>
+                          <span>{getLearningStepTypeLabel(step.type)}</span>
+                          <div>
+                            <strong>{step.title}</strong>
                           </div>
-                        ))}
-                      </div>
-                    </section>
-                  ) : null}
-                </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                  <button
+                    type="button"
+                    className="roadmap-card-action"
+                    onClick={() => setDetailModal('resources')}
+                  >
+                    상세보기
+                  </button>
+                </>
               ) : (
                 <p className="learning-resource-empty">이번 주 학습 자료가 없습니다.</p>
               )}
@@ -768,12 +701,18 @@ const RoadmapPage = () => {
             <div className="roadmap-modal-header">
               <div>
                 <h2 id="roadmap-modal-title">
-                  {detailModal === 'overview' ? '현재 단계 상세' : '이번 주 할 일 상세'}
+                  {detailModal === 'overview'
+                    ? '현재 단계 상세'
+                    : detailModal === 'resources'
+                      ? '추천 학습 자료 상세'
+                      : '이번 주 할 일 상세'}
                 </h2>
                 <p>
                   {detailModal === 'overview'
                     ? `${selectedWeekData.week}주차 학습 목표와 핵심 스킬입니다.`
-                    : `${selectedWeekData.week}주차에 완료해야 할 학습 체크리스트입니다.`}
+                    : detailModal === 'resources'
+                      ? `${selectedWeekData.week}주차 추천 학습 자료입니다.`
+                      : `${selectedWeekData.week}주차에 완료해야 할 학습 체크리스트입니다.`}
                 </p>
               </div>
               <button type="button" onClick={() => setDetailModal(null)} aria-label="로드맵 상세 닫기">
@@ -810,6 +749,96 @@ const RoadmapPage = () => {
                   <strong>JD 요구사항과 이력서 경험을 연결하는 구간입니다.</strong>
                   <p>{reasonText}</p>
                 </article>
+              </div>
+            ) : detailModal === 'resources' ? (
+              <div className="roadmap-modal-body">
+                {selectedLearningSteps.length > 0 ? (
+                  <article className="roadmap-detail-block">
+                    <span>이번 주 학습 가이드</span>
+                    <div className="learning-step-list">
+                      {selectedLearningSteps.map((step) => (
+                        <article className="learning-step-item" key={step.id}>
+                          <span>{getLearningStepTypeLabel(step.type)}</span>
+                          <div>
+                            <strong>{step.title}</strong>
+                            {step.description ? <p>{step.description}</p> : null}
+                            {step.expectedOutput ? <small>{step.expectedOutput}</small> : null}
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+
+                {hasPracticeProject ? (
+                  <article className="roadmap-detail-block">
+                    <span>실습 프로젝트</span>
+                    <div className="practice-project-box">
+                      {selectedPracticeProject.title ? <strong>{selectedPracticeProject.title}</strong> : null}
+                      {selectedPracticeProject.goal ? <p>{selectedPracticeProject.goal}</p> : null}
+                      {selectedPracticeProject.requirements?.length > 0 ? (
+                        <ul>
+                          {selectedPracticeProject.requirements.map((requirement) => (
+                            <li key={requirement}>{requirement}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {selectedPracticeProject.completionDefinition ? (
+                        <small>{selectedPracticeProject.completionDefinition}</small>
+                      ) : null}
+                      {selectedPracticeProject.resumeBullet ? (
+                        <em>{selectedPracticeProject.resumeBullet}</em>
+                      ) : null}
+                    </div>
+                  </article>
+                ) : null}
+
+                {selectedSearchQueries.length > 0 ? (
+                  <article className="roadmap-detail-block">
+                    <span>참고 검색어</span>
+                    <div className="search-query-list">
+                      {selectedSearchQueries.map((query) => (
+                        <a
+                          key={query}
+                          href={createGoogleSearchUrl(query)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {query}
+                          <ExternalLink size={12} />
+                        </a>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
+
+                {selectedWeekCourses.length > 0 ? (
+                  <article className="roadmap-detail-block">
+                    <span>보조 강의</span>
+                    <div className="lecture-list">
+                      {selectedWeekCourses.map((course) => (
+                        <div className="lecture-item" key={course.id}>
+                          <div className="play-icon">
+                            <Play size={14} fill="currentColor" />
+                          </div>
+                          <div>
+                            <strong>{course.title}</strong>
+                            <small>
+                              <Clock size={12} />
+                              {course.level} · {course.time} · {course.provider}
+                            </small>
+                          </div>
+                          {hasValidUrl(course.url) ? (
+                            <a href={course.url} target="_blank" rel="noopener noreferrer">
+                              {course.provider === 'YouTube' ? '강의 보기' : '자료 보기'}
+                              <ExternalLink size={13} />
+                            </a>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                ) : null}
               </div>
             ) : (
               <div className="roadmap-modal-body">
