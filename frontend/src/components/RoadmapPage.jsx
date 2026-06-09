@@ -550,26 +550,30 @@ const RoadmapPage = () => {
 
             <article className="roadmap-card task-card">
               <h2>이번 주 할 일</h2>
-              {isFutureSelected ? (
-                <p className="locked-week-notice">이전 주차를 완료하면 진행할 수 있습니다.</p>
-              ) : null}
-              <div className="task-list">
-                {taskItems.map((task) => (
-                  <div className={`task-item ${task.tone} ${isFutureSelected ? 'locked' : ''}`} key={task.title}>
-                    <button
-                      type="button"
-                      className="task-check"
-                      aria-label={`${task.title} 완료 상태 변경`}
-                      aria-pressed={task.isChecked}
-                      disabled={isFutureSelected}
-                      onClick={() => handleTaskToggle(task.id)}
-                    />
-                    <div>
-                      <strong>{task.title}</strong>
+              <div className="task-list-wrap">
+                <div className="task-list">
+                  {taskItems.map((task) => (
+                    <div className={`task-item ${task.tone} ${isFutureSelected ? 'locked' : ''}`} key={task.title}>
+                      <button
+                        type="button"
+                        className="task-check"
+                        aria-label={`${task.title} 완료 상태 변경`}
+                        aria-pressed={task.isChecked}
+                        disabled={isFutureSelected}
+                        onClick={() => handleTaskToggle(task.id)}
+                      />
+                      <div>
+                        <strong>{task.title}</strong>
+                      </div>
+                      <em>{task.status}</em>
                     </div>
-                    <em>{task.status}</em>
+                  ))}
+                </div>
+                {isFutureSelected ? (
+                  <div className="locked-week-notice">
+                    <span>이전 주차를 완료하면 진행할 수 있습니다.</span>
                   </div>
-                ))}
+                ) : null}
               </div>
               <button
                 type="button"

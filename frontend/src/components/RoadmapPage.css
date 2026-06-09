@@ -85,7 +85,14 @@
 }
 
 .week-node.selected .week-dot {
-  box-shadow: 0 0 0 4px rgba(79, 103, 238, 0.16);
+  outline: 3px solid rgba(79, 103, 238, 0.34);
+  outline-offset: 4px;
+  box-shadow: 0 10px 22px rgba(79, 103, 238, 0.22);
+}
+
+.week-node.selected strong,
+.week-node.selected span {
+  color: #253044;
 }
 
 .week-dot {
@@ -194,6 +201,10 @@
   padding: 16px 20px;
 }
 
+.lecture-card {
+  min-height: unset;
+}
+
 .week-card {
   overflow: hidden;
 }
@@ -286,22 +297,37 @@
   font-weight: 800;
 }
 
+.task-list-wrap {
+  position: relative;
+}
+
 .task-list {
   display: grid;
   gap: 8px;
 }
 
 .locked-week-notice {
-  min-height: 34px;
-  display: flex;
-  align-items: center;
-  margin: 0 0 8px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: #fff7ed;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
   color: #ea580c;
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 900;
+  pointer-events: none;
+}
+
+.locked-week-notice span {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 999px;
+  background: #fff7ed;
+  box-shadow: 0 8px 18px rgba(234, 88, 12, 0.12);
 }
 
 .task-item {
@@ -579,12 +605,13 @@
 
 .learning-resource-list {
   display: grid;
-  gap: 10px;
+  gap: 9px;
 }
 
 .learning-resource-section {
   display: grid;
-  gap: 7px;
+  gap: 6px;
+  min-width: 0;
 }
 
 .learning-resource-section h3 {
@@ -596,16 +623,17 @@
 
 .learning-step-list {
   display: grid;
-  gap: 7px;
+  gap: 6px;
 }
 
 .learning-step-item {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
-  gap: 9px;
-  padding: 9px 10px;
+  gap: 8px;
+  padding: 8px 10px;
   border-radius: 10px;
   background: #f4f7ff;
+  min-width: 0;
 }
 
 .learning-step-item span {
@@ -623,10 +651,12 @@
 .learning-step-item strong,
 .practice-project-box strong {
   display: block;
+  overflow: visible;
   color: #253044;
   font-size: 13px;
   line-height: 1.35;
   font-weight: 900;
+  white-space: normal;
 }
 
 .learning-step-item p,
@@ -729,12 +759,12 @@
 
 .lecture-item strong {
   display: block;
-  overflow: hidden;
+  overflow: visible;
   color: #253044;
   font-size: 13px;
   font-weight: 900;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .lecture-item small {
