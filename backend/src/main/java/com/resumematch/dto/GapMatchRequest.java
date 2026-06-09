@@ -7,6 +7,7 @@ import java.util.List;
 @Getter
 @Setter
 public class GapMatchRequest {
+    private Long memberId;
     private List<String> resumeSkills;
     private List<String> technicalSkills;
     private List<String> resumeKeywords;

@@ -27,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,12 +44,19 @@ public class ResumeController {
     private final AnalysisResultRepository analysisResultRepository;
 
     @PostMapping("/parse-resume")
-    public ResponseEntity<?> parseResume(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> parseResume(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "memberId", required = false) Long memberId) {
+        if (memberId == null || memberId <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
+
         try {
             String text = fileParsingService.extractText(file);
             ResumeParseResponse parseResponse = resumeLlmAnalyzeService.analyze(text);
 
             Resume savedResume = Resume.builder()
+                    .memberId(memberId)
                     .originalFileName(file.getOriginalFilename())
                     .skills(String.join(",", parseResponse.getSkills()))
                     .build();
@@ -65,10 +71,13 @@ public class ResumeController {
 
     @PostMapping("/gap-match")
     public ResponseEntity<?> analyzeGap(@RequestBody GapMatchRequest requestDto) {
+        if (requestDto.getMemberId() == null || requestDto.getMemberId() <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
+
         try {
-            Resume latestResume = resumeRepository.findAll().stream()
-                    .max(Comparator.comparing(Resume::getCreatedAt))
-                    .orElse(null);
+            Long memberId = requestDto.getMemberId();
+            Resume latestResume = resumeRepository.findTopByMemberIdOrderByCreatedAtDesc(memberId);
 
             if (latestResume == null) {
                 return ResponseEntity.badRequest().body("이력서 정보가 없습니다. 먼저 이력서를 업로드해주세요.");
@@ -80,6 +89,7 @@ public class ResumeController {
             GapMatchResponse response = gapLlmAnalyzeService.analyze(resumeSkillsList, requestDto);
 
             AnalysisResult resultEntity = AnalysisResult.builder()
+                    .memberId(memberId)
                     .targetJob(response.getTargetJob())
                     .jdText(requestDto.getJdText())
                     .analysis(toJson(objectMapper, response))

@@ -158,12 +158,21 @@ const ResumeMatch = () => {
     const file = e.target.files[0];
     if (!file) return;
 
+    const memberId = localStorage.getItem('memberId');
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      e.target.value = '';
+      return;
+    }
+
     setResumeFile(file);
     setParsedResumeData(null);
     setIsParsing(true);
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('memberId', memberId);
 
     try {
       const response = await axios.post(`${API_BASE_URL}/parse-resume`, formData, {
@@ -290,6 +299,13 @@ const ResumeMatch = () => {
     const currentJobDescription = inputMode === 'url'
       ? extractedJobDescription.trim()
       : jobDescription.trim();
+    const memberId = localStorage.getItem('memberId');
+
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
 
     if (!resumeFile || !parsedResumeData?.skills?.length) {
       alert('먼저 이력서를 업로드해주세요.');
@@ -317,6 +333,7 @@ const ResumeMatch = () => {
       const response = await axios.post(
         `${API_BASE_URL}/gap-match`,
         {
+          memberId: Number(memberId),
           resumeSkills: parsedResumeData.skills,
           technicalSkills: parsedResumeData.technicalSkills || [],
           resumeKeywords: parsedResumeData.keywords || [],
@@ -339,6 +356,7 @@ const ResumeMatch = () => {
         state: {
           analysisResult: {
             ...response.data,
+            memberId: Number(memberId),
             targetJob,
             jdText: currentJobDescription,
             requiredSkills: jobAnalysisResult?.requiredSkills || [],

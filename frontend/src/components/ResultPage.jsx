@@ -645,11 +645,12 @@ const ResultPage = () => {
       <section className="result-cta">
         <button
           type="button"
-          onClick={() =>
-            navigate('/roadmap', {
-              state: {
-                missingSkills: report.needSkills,
-                keywords: report.needSkills,
+            onClick={() =>
+              navigate('/roadmap', {
+                state: {
+                  memberId: localStorage.getItem('memberId'),
+                  missingSkills: report.needSkills,
+                  keywords: report.needSkills,
                 targetJob: report.targetJob,
                 learningDirection: report.learningDirection,
                 requiredSkills: report.jobRequiredSkills,

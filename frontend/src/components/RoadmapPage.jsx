@@ -251,7 +251,20 @@ const RoadmapPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const { missingSkills, roadmapData } = location.state || {};
+  const {
+    memberId: stateMemberId,
+    missingSkills,
+    roadmapData,
+    targetJob,
+    learningDirection,
+    requiredSkills,
+    preferredSkills,
+    ownedSkills,
+    matchedSkills,
+    jobSummary,
+    analysis,
+  } = location.state || {};
+  const memberId = stateMemberId || localStorage.getItem('memberId');
   const skillKeywords = useMemo(() => toArray(missingSkills), [missingSkills]);
 
   const [courses, setCourses] = useState([]);
@@ -302,12 +315,29 @@ const RoadmapPage = () => {
         return;
       }
 
+      if (!memberId) {
+        alert('로그인이 필요합니다.');
+        navigate('/login');
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setRoadmapLoadFailed(false);
 
       try {
         const response = await axios.post(API_BASE_URL, {
+          memberId: Number(memberId),
           keywords: skillKeywords,
+          missingSkills: skillKeywords,
+          targetJob,
+          learningDirection,
+          requiredSkills: toArray(requiredSkills),
+          preferredSkills: toArray(preferredSkills),
+          ownedSkills: toArray(ownedSkills),
+          matchedSkills: toArray(matchedSkills),
+          jobSummary,
+          analysis,
         });
 
         if (response.data?.weeks) {
@@ -334,7 +364,7 @@ const RoadmapPage = () => {
     };
 
     fetchRoadmap();
-  }, [roadmapData, skillKeywords]);
+  }, [analysis, jobSummary, learningDirection, matchedSkills, memberId, navigate, ownedSkills, preferredSkills, requiredSkills, roadmapData, skillKeywords, targetJob]);
 
   const displayCourses = courses.length > 0 ? courses : fallbackCourses;
   const fallbackWeeks = useMemo(() => buildWeeks(skillKeywords, displayCourses), [skillKeywords, displayCourses]);

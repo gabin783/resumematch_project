@@ -20,15 +20,19 @@ public class RoadmapController {
     private final RoadmapRepository roadmapRepository; // ✨ 추가: DB 저장소
 
     @PostMapping("/recommend")
-    public ResponseEntity<RoadmapResponse> recommendCourses(@RequestBody RoadmapRequestDto request) {
+    public ResponseEntity<?> recommendCourses(@RequestBody RoadmapRequestDto request) {
         if (request == null) {
             request = new RoadmapRequestDto();
+        }
+
+        if (request.getMemberId() == null || request.getMemberId() <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
         }
 
         RoadmapResponse roadmap = roadmapService.generateRoadmap(request);
 
         try {
-            Long currentMemberId = request.getMemberId() != null ? request.getMemberId() : 1L; // 임시 기본 회원 ID
+            Long currentMemberId = request.getMemberId();
 
             String jobTitle = (roadmap.getTargetJob() != null && !roadmap.getTargetJob().isEmpty())
                     ? roadmap.getTargetJob()
