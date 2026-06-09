@@ -1,5 +1,55 @@
 /* MyPage.css */
 
+.mypage-auth-required {
+    min-height: calc(100vh - 66px);
+    display: grid;
+    place-items: center;
+    padding: 48px 20px;
+    background: #f7f8ff;
+}
+
+.mypage-auth-card {
+    width: min(100%, 520px);
+    padding: 42px 34px;
+    border: 1px solid #d7ddec;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 16px 38px rgba(17, 24, 39, 0.07);
+    text-align: center;
+}
+
+.mypage-auth-card h1 {
+    margin: 0 0 14px;
+    color: #111827;
+    font-size: 28px;
+    line-height: 1.25;
+    font-weight: 900;
+}
+
+.mypage-auth-card p {
+    margin: 0 0 24px;
+    color: #667085;
+    font-size: 15px;
+    line-height: 1.6;
+    font-weight: 700;
+}
+
+.mypage-auth-card button {
+    min-height: 44px;
+    padding: 0 22px;
+    border: 0;
+    border-radius: 10px;
+    background: #4f67ee;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.mypage-auth-card button:hover {
+    background: #4158dc;
+}
+
 .mypage-container {
     max-width: 800px;
     margin: 0 auto;

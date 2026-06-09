@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import com.resumematch.dto.analysisResultsDto;
 import com.resumematch.entity.AnalysisResult;
@@ -30,17 +31,19 @@ public class MypageController {
     private final RoadmapRepository roadmapRepository; // ✨ 의존성 주입
 
     @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboardData() {
-        Long memberId = 1L; // 임시 고정 회원 ID
+    public ResponseEntity<?> getDashboardData(@RequestParam(required = false) Long memberId) {
+        if (memberId == null || memberId <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
 
         Member member = memberRepository.findById(memberId).orElse(null);
+        if (member == null) {
+            return ResponseEntity.badRequest().body("존재하지 않는 회원입니다.");
+        }
 
         List<Resume> resumes = resumeRepository.findTop5ByMemberIdOrderByCreatedAtDesc(memberId);
 
-        List<AnalysisResult> analysisResults = analysisResultRepository.findAll().stream()
-                .filter(a -> a.getMemberId().equals(memberId)) // (임시 필터링, 레포지토리에 findByMemberId 추가하셨다면 그걸 쓰시면 됩니다!)
-                .sorted((a1, a2) -> a2.getCreatedAt().compareTo(a1.getCreatedAt()))
-                .toList();
+        List<AnalysisResult> analysisResults = analysisResultRepository.findByMemberIdOrderByCreatedAtDesc(memberId);
 
         // ✨ DB에서 해당 회원의 로드맵 최신순으로 가져오기
         List<Roadmap> roadmaps = roadmapRepository.findByMemberIdOrderByCreatedAtDesc(memberId);

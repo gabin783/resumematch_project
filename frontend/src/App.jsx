@@ -6,6 +6,7 @@ import RoadmapPage from "./components/RoadmapPage";
 import Navbar from './components/Navbar';
 import MyPage from './components/MyPage'; 
 import KakaoCallback from './components/KakaoCallback'; 
+import LoginPage from './components/LoginPage';
 
 // ✨ 새로 만든 채용 공고 리스트 컴포넌트 임포트!
 import JobPostingList from './components/JobPostingList'; 
@@ -19,6 +20,7 @@ function App() {
         <Route path="/match" element={<ResumeMatch />} />
         <Route path="/result" element={<ResultPage />} />
         <Route path="/roadmap" element={<RoadmapPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/mypage" element={<MyPage />} /> 
 
         {/* 카카오가 인가 코드를 들고 돌아올 도착지 주소 연결! */}

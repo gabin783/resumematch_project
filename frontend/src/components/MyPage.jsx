@@ -30,11 +30,20 @@ const MyPage = () => {
     const [analysisResults, setAnalysisResults] = useState([]); 
     const [roadmaps, setRoadmaps] = useState([]); 
     const [loading, setLoading] = useState(true);
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            const memberId = localStorage.getItem("memberId");
+
+            if (!memberId) {
+                setIsAuthenticated(false);
+                setLoading(false);
+                return;
+            }
+
             try {
-                const response = await fetch('http://localhost:8080/api/mypage/dashboard');
+                const response = await fetch(`http://localhost:8080/api/mypage/dashboard?memberId=${encodeURIComponent(memberId)}`);
                 
                 if (!response.ok) {
                     throw new Error('데이터를 불러오는데 실패했습니다.');
@@ -54,7 +63,7 @@ const MyPage = () => {
         };
 
         fetchDashboardData();
-    }, []);
+    }, [navigate]);
 
     const handleDelete = async (id) => {
         if (!window.confirm("정말 이 기록을 삭제하시겠습니까?")) return; 
@@ -91,6 +100,20 @@ const MyPage = () => {
 
     if (loading) {
         return <div style={{ padding: '20px', textAlign: 'center' }}>데이터를 불러오는 중입니다... ⏳</div>;
+    }
+
+    if (!isAuthenticated) {
+        return (
+            <main className="mypage-auth-required">
+                <section className="mypage-auth-card">
+                    <h1>로그인이 필요합니다</h1>
+                    <p>로그인 후 이력서 분석 기록과 학습 로드맵을 확인하세요.</p>
+                    <button type="button" onClick={() => navigate('/login')}>
+                        로그인하러 가기
+                    </button>
+                </section>
+            </main>
+        );
     }
 
     return (

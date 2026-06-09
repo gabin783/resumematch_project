@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import resumeMatchLogo from '../assets/resumematch-logo.svg';
 
-const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '6c26e45a1be28d1c9d6d41d9edaeb2d2';
-const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/oauth/kakao/callback';
-
 const menuItems = [
   { path: '/match', label: '이력서 매칭' },
   { path: '/result', label: '스킬 갭 분석' },
@@ -21,10 +18,8 @@ const Navbar = () => {
     setIsLoggedIn(Boolean(localStorage.getItem('nickname')));
   }, [location.pathname]);
 
-  const kakaoURL = `https://kauth.kakao.com/oauth/authorize?client_id=${KAKAO_CLIENT_ID}&redirect_uri=${REDIRECT_URI}&response_type=code`;
-
   const handleLogin = () => {
-    window.location.href = kakaoURL;
+    navigate('/login');
   };
 
   const handleLogout = () => {
