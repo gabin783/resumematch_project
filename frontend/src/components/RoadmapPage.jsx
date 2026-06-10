@@ -179,7 +179,7 @@ const buildWeekTasks = (week) => {
     return week.tasks.map((task, index) => ({
       id: `week-${week.week}-task-${index}`,
       title: typeof task === 'string' ? task : task.title || `학습 할 일 ${index + 1}`,
-      desc: typeof task === 'string' ? task : task.desc || task.description || '',
+      desc: typeof task === 'string' ? '' : task.desc || task.description || '',
     }));
   }
 
@@ -878,15 +878,21 @@ const RoadmapPage = () => {
               </div>
             ) : (
               <div className="roadmap-modal-body">
-                {taskItems.map((task) => (
-                  <article className="roadmap-detail-block task-detail" key={task.title}>
-                    <div>
-                      <span>{task.status}</span>
-                      <strong>{task.title}</strong>
-                    </div>
-                    <p>{task.desc}</p>
-                  </article>
-                ))}
+                {taskItems.map((task) => {
+                  const shouldShowDesc =
+                    task.desc &&
+                    task.desc.trim() !== task.title?.trim();
+
+                  return (
+                    <article className="roadmap-detail-block task-detail" key={task.title}>
+                      <div>
+                        <span>{task.status}</span>
+                        <strong>{task.title}</strong>
+                      </div>
+                      {shouldShowDesc ? <p>{task.desc}</p> : null}
+                    </article>
+                  );
+                })}
               </div>
             )}
           </section>
