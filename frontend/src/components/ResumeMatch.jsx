@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './ResumeMatch.css';
@@ -26,6 +26,32 @@ const RESUME_SKILL_PRIORITY = [
   'GitHub Actions',
   'REST API',
   'Git',
+];
+
+const DEMO_JOB_URL = 'https://www.wanted.co.kr/wd/360817';
+
+const demoResumeSamples = [
+  {
+    key: 'backend',
+    title: '백엔드 지망자 샘플',
+    description: 'Java, Spring Boot, MySQL 중심 이력서입니다.',
+    pdf: '/sample_resume/backend_resume_sample.pdf',
+    docx: '/sample_resume/backend_resume_sample.docx',
+  },
+  {
+    key: 'frontend',
+    title: '프론트엔드 지망자 샘플',
+    description: 'React, TypeScript 중심 이력서입니다.',
+    pdf: '/sample_resume/frontend_resume_sample.pdf',
+    docx: '/sample_resume/frontend_resume_sample.docx',
+  },
+  {
+    key: 'fullstack',
+    title: '풀스택 지망자 샘플',
+    description: '프론트엔드와 백엔드 경험이 모두 포함된 이력서입니다.',
+    pdf: '/sample_resume/fullstack_resume_sample.pdf',
+    docx: '/sample_resume/fullstack_resume_sample.docx',
+  },
 ];
 
 const steps = [
@@ -114,6 +140,17 @@ const ResumeMatch = () => {
   const [isLoadingJob, setIsLoadingJob] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isResumeSkillsExpanded, setIsResumeSkillsExpanded] = useState(false);
+  const [demoCopyMessage, setDemoCopyMessage] = useState('');
+
+  useEffect(() => {
+    if (!demoCopyMessage) return undefined;
+
+    const timer = setTimeout(() => {
+      setDemoCopyMessage('');
+    }, 2500);
+
+    return () => clearTimeout(timer);
+  }, [demoCopyMessage]);
 
   const isResumeCompleted = Boolean(parsedResumeData?.skills?.length);
   const isJobCompleted = Boolean(jobAnalysisResult);
@@ -198,6 +235,35 @@ const ResumeMatch = () => {
 
   const handleModeChange = (mode) => {
     setInputMode(mode);
+  };
+
+  const handleCopyDemoJobUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(DEMO_JOB_URL);
+      setDemoCopyMessage('공고 URL이 복사되었습니다.');
+    } catch (error) {
+      const textarea = document.createElement('textarea');
+      textarea.value = DEMO_JOB_URL;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      window.focus();
+      textarea.focus();
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+
+      const copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+
+      if (copied) {
+        setDemoCopyMessage('공고 URL이 복사되었습니다.');
+        return;
+      }
+
+      console.error('공고 URL 복사 오류:', error);
+      setDemoCopyMessage('복사에 실패했습니다. URL을 직접 복사해주세요.');
+    }
   };
 
   const applyJobAnalysis = (analysis) => {
@@ -471,6 +537,37 @@ const ResumeMatch = () => {
             </div>
           );
         })}
+      </section>
+
+      <section className="rm-demo-section" aria-labelledby="rm-demo-title">
+        <div className="rm-demo-content">
+          <div className="rm-demo-samples" aria-label="샘플 이력서">
+            {demoResumeSamples.map((sample) => (
+              <div className="rm-demo-item" key={sample.key}>
+                <a className="rm-demo-pdf" href={sample.pdf} download>
+                  {sample.title.replace(' 지망자 샘플', '')} 샘플 PDF
+                </a>
+                <a className="rm-demo-docx" href={sample.docx} download>
+                  DOCX
+                </a>
+              </div>
+            ))}
+          </div>
+
+          <div className="rm-demo-url-row">
+            <span>채용공고 URL</span>
+            <code>{DEMO_JOB_URL}</code>
+            <button type="button" onClick={handleCopyDemoJobUrl}>
+              공고 URL 복사
+            </button>
+          </div>
+
+          {demoCopyMessage ? (
+            <span className="rm-demo-copy-message" role="status">
+              {demoCopyMessage}
+            </span>
+          ) : null}
+        </div>
       </section>
 
       <section className="rm-workspace">

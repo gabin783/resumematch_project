@@ -72,6 +72,148 @@
   color: #4d67e8;
 }
 
+.rm-demo-section {
+  width: min(1040px, 100%);
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border: 1px solid #d7dce9;
+  border-radius: 12px;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.rm-demo-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.rm-demo-header h2 {
+  flex-shrink: 0;
+  margin: 0;
+  color: #151923;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.rm-demo-header p {
+  margin: 0;
+  color: #7d879b;
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.rm-demo-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.rm-demo-samples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.rm-demo-item {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  border: 1px solid #dbe2f4;
+  border-radius: 9px;
+  background: #f8faff;
+  overflow: hidden;
+}
+
+.rm-demo-pdf,
+.rm-demo-docx {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.rm-demo-pdf {
+  padding: 0 10px;
+  color: #3146c8;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.rm-demo-docx {
+  align-self: stretch;
+  padding: 0 8px;
+  border-left: 1px solid #dbe2f4;
+  background: #fff;
+  color: #64748b;
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.rm-demo-item:hover {
+  border-color: #aebcff;
+  background: #eef4ff;
+}
+
+.rm-demo-url-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid #dbe2f4;
+  border-radius: 10px;
+  background: #f9fbff;
+}
+
+.rm-demo-url-row span {
+  flex-shrink: 0;
+  color: #1f2937;
+  font-size: 12.5px;
+  font-weight: 900;
+}
+
+.rm-demo-url-row code {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rm-demo-url-row button {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #4f67ee;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(79, 103, 238, 0.14);
+}
+
+.rm-demo-url-row button:hover {
+  background: #425add;
+}
+
+.rm-demo-copy-message {
+  display: inline-flex;
+  width: fit-content;
+  color: #16a34a;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .rm-workspace {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -665,6 +807,39 @@
 
   .rm-step-label {
     font-size: 11px;
+  }
+
+  .rm-demo-section {
+    margin-bottom: 18px;
+    padding: 14px;
+  }
+
+  .rm-demo-header {
+    display: grid;
+    gap: 3px;
+  }
+
+  .rm-demo-samples {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .rm-demo-item {
+    width: 100%;
+  }
+
+  .rm-demo-pdf {
+    flex: 1;
+  }
+
+  .rm-demo-url-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .rm-demo-url-row button {
+    width: 100%;
   }
 
   .rm-workspace {
