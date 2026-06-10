@@ -394,8 +394,14 @@ const RoadmapPage = () => {
     selectedSearchQueries.length > 0 ||
     selectedWeekCourses.length > 0;
   const isFutureSelected = selectedWeek > currentWeek;
-  const primarySkill = skillKeywords[0] || selectedWeekData.tags[0] || selectedWeekData.title;
-  const overviewSkills = skillKeywords.length > 0 ? skillKeywords.slice(0, 2) : selectedWeekData.tags.slice(0, 2);
+  const weekSkills =
+    toArray(selectedWeekData?.focusSkills).length > 0
+      ? toArray(selectedWeekData.focusSkills)
+      : toArray(selectedWeekData?.tags).length > 0
+        ? toArray(selectedWeekData.tags)
+        : skillKeywords;
+  const primarySkill = weekSkills[0] || selectedWeekData.title;
+  const overviewSkills = weekSkills.slice(0, 2);
   const reasonText = '채용공고의 핵심 요구사항과 연결된 보완 항목입니다.';
   const taskItems = selectedWeekTasks.map((task) => {
     const isChecked = Boolean(checkedTasks[task.id]);
