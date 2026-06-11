@@ -24,7 +24,6 @@ const KakaoCallback = () => {
           localStorage.setItem('memberId', response.data.id);
           localStorage.setItem('nickname', response.data.nickname);
           
-          alert(`${response.data.nickname}님 환영합니다!`);
           navigate('/'); 
         })
         .catch(error => {

@@ -61,7 +61,7 @@
 .mypage-layout {
   width: min(1280px, 100%);
   margin: 0 auto;
-  padding: 20px 28px 24px;
+  padding: 16px 28px 18px;
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   gap: 22px;
@@ -70,9 +70,18 @@
 
 .mypage-sidebar {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: start;
-  padding-top: 45px;
+  padding-top: 0;
+}
+
+.sidebar-page-title {
+  margin: 0 0 2px;
+  color: #111827;
+  font-size: 28px;
+  line-height: 1.2;
+  font-weight: 900;
+  text-align: left;
 }
 
 .profile-card,
@@ -198,17 +207,10 @@
 .mypage-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 18px;
-  margin-bottom: 10px;
-}
-
-.mypage-header h1 {
-  margin: 0;
-  color: #111827;
-  font-size: 28px;
-  line-height: 1.2;
-  font-weight: 900;
+  min-height: 38px;
+  margin-bottom: 8px;
 }
 
 .mypage-header p {
@@ -238,7 +240,7 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .summary-mini-card {
@@ -268,7 +270,7 @@
 }
 
 .content-panel {
-  padding: 14px 16px;
+  padding: 12px 14px;
 }
 
 .panel-heading {
@@ -305,11 +307,36 @@
   font-weight: 900;
 }
 
-.match-card-list,
+.analysis-panel-heading {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.analysis-panel-heading > div {
+  grid-column: 2;
+  text-align: center;
+}
+
+.analysis-panel-heading > span {
+  grid-column: 3;
+  justify-self: end;
+}
+
 .card-list {
   display: grid;
   gap: 10px;
   max-height: 560px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.match-card-list,
+.roadmap-card-list {
+  display: grid;
+  gap: 10px;
+  height: 500px;
+  max-height: 500px;
   overflow-y: auto;
   padding-right: 4px;
 }
@@ -770,6 +797,10 @@
     padding-top: 0;
   }
 
+  .sidebar-page-title {
+    margin-bottom: 0;
+  }
+
   .mypage-menu {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -798,11 +829,14 @@
   }
 
   .match-card-list,
+  .roadmap-card-list,
   .card-list {
+    height: auto;
     max-height: none;
     overflow-y: visible;
     padding-right: 0;
   }
+
 }
 
 @media (max-width: 640px) {
@@ -811,11 +845,7 @@
   }
 
   .mypage-header {
-    display: grid;
-  }
-
-  .mypage-header h1 {
-    font-size: 26px;
+    justify-content: stretch;
   }
 
   .summary-strip,

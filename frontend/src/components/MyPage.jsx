@@ -81,6 +81,8 @@ const getRoadmapSkills = (roadmap) => {
 };
 
 const getFavoriteJobsStorageKey = (memberId) => `favoriteJobs:${memberId || 'guest'}`;
+const getProfileImageStorageKey = (memberId) => `profileImage:${memberId || 'guest'}`;
+const getNicknameStorageKey = (memberId) => `nickname:${memberId || 'guest'}`;
 
 const readFavoriteJobsFromStorage = (memberId) => {
   try {
@@ -93,6 +95,7 @@ const readFavoriteJobsFromStorage = (memberId) => {
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const memberId = localStorage.getItem('memberId');
 
   const [activeTab, setActiveTab] = useState('analysis');
   const [profile, setProfile] = useState(null);
@@ -101,11 +104,11 @@ const MyPage = () => {
   const [roadmaps, setRoadmaps] = useState([]);
   const [favoriteJobs, setFavoriteJobs] = useState([]);
   const [nicknameInput, setNicknameInput] = useState('');
-  const [profileImage, setProfileImage] = useState(localStorage.getItem('profileImage') || '');
+  const [profileImage, setProfileImage] = useState(
+    localStorage.getItem(getProfileImageStorageKey(memberId)) || ''
+  );
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(true);
-
-  const memberId = localStorage.getItem('memberId');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -125,8 +128,13 @@ const MyPage = () => {
         }
 
         const data = await response.json();
+        const savedNickname = localStorage.getItem(getNicknameStorageKey(memberId));
+        const nextProfile = {
+          ...(data.profile || {}),
+          ...(savedNickname ? { nickname: savedNickname } : {}),
+        };
 
-        setProfile(data.profile);
+        setProfile(nextProfile);
         setResumes(data.resumes || []);
         setAnalysisResults(data.analysisResults || []);
         setRoadmaps(data.roadmaps || []);
@@ -135,7 +143,7 @@ const MyPage = () => {
             ? data.favoriteJobs
             : readFavoriteJobsFromStorage(memberId)
         );
-        setNicknameInput(data.profile?.nickname || localStorage.getItem('nickname') || '');
+        setNicknameInput(savedNickname || data.profile?.nickname || '');
       } catch (error) {
         console.error('마이페이지 API 호출 오류:', error);
         setFavoriteJobs(readFavoriteJobsFromStorage(memberId));
@@ -145,6 +153,10 @@ const MyPage = () => {
     };
 
     fetchDashboardData();
+  }, [memberId]);
+
+  useEffect(() => {
+    setProfileImage(localStorage.getItem(getProfileImageStorageKey(memberId)) || '');
   }, [memberId]);
 
   const summaryItems = useMemo(
@@ -248,8 +260,8 @@ const MyPage = () => {
       nickname: nextNickname,
     }));
 
-    localStorage.setItem('nickname', nextNickname);
-    alert('닉네임이 임시 저장되었습니다. 백엔드 API 연결 후 서버 저장으로 전환할 수 있습니다.');
+    localStorage.setItem(getNicknameStorageKey(memberId), nextNickname);
+    alert('닉네임이 저장되었습니다.');
   };
 
   const handleProfileImageChange = (event) => {
@@ -266,7 +278,7 @@ const MyPage = () => {
     reader.onload = () => {
       const imageUrl = reader.result;
       setProfileImage(imageUrl);
-      localStorage.setItem('profileImage', imageUrl);
+      localStorage.setItem(getProfileImageStorageKey(memberId), imageUrl);
     };
 
     reader.readAsDataURL(file);
@@ -274,20 +286,11 @@ const MyPage = () => {
 
   const handleResetProfileImage = () => {
     setProfileImage('');
-    localStorage.removeItem('profileImage');
+    localStorage.removeItem(getProfileImageStorageKey(memberId));
   };
 
   const handleWithdraw = () => {
-    const firstConfirm = window.confirm('정말 회원 탈퇴를 진행하시겠습니까?');
-    if (!firstConfirm) return;
-
-    const secondConfirm = window.confirm(
-      '회원 탈퇴 시 이력서 분석 기록, 매칭 분석 기록, 학습 로드맵이 삭제될 수 있습니다.\n그래도 탈퇴하시겠습니까?'
-    );
-
-    if (!secondConfirm) return;
-
-    alert('회원 탈퇴 API 연결 후 처리할 수 있습니다.');
+    alert('회원 탈퇴 기능은 추후 제공 예정입니다.');
   };
 
   if (loading) {
@@ -312,6 +315,8 @@ const MyPage = () => {
     <main className="mypage-shell">
       <section className="mypage-layout">
         <aside className="mypage-sidebar">
+          <h1 className="sidebar-page-title">마이페이지</h1>
+
           <div className="profile-card">
             {profileImage ? (
               <img src={profileImage} alt="프로필" className="profile-avatar-image" />
@@ -365,9 +370,6 @@ const MyPage = () => {
 
         <section className="mypage-main">
           <header className="mypage-header">
-            <div>
-              <h1>마이페이지</h1>
-            </div>
             <button type="button" className="primary-action-btn" onClick={() => navigate('/match')}>
               새 매칭 시작
             </button>
@@ -385,10 +387,9 @@ const MyPage = () => {
 
           {activeTab === 'analysis' ? (
             <section className="content-panel">
-              <div className="panel-heading">
+              <div className="panel-heading analysis-panel-heading">
                 <div>
                   <h2>이력서 매칭 기록</h2>
-                  <p>최근 채용공고 비교 결과를 확인하고 리포트로 이동할 수 있습니다.</p>
                 </div>
                 <span>{analysisResults.length}건</span>
               </div>
@@ -484,7 +485,7 @@ const MyPage = () => {
               {roadmaps.length === 0 ? (
                 <p className="empty-message">아직 생성된 학습 로드맵이 없습니다.</p>
               ) : (
-                <div className="card-list">
+                <div className="card-list roadmap-card-list">
                   {roadmaps.map((map) => {
                     const parsedRoadmap = getRoadmapPayload(map);
                     const roadmapSkills = getRoadmapSkills(map);
@@ -678,11 +679,11 @@ const MyPage = () => {
                   <h3>회원 탈퇴</h3>
                   <p>
                     카카오 연동 계정은 ResumeMatch에서 아이디와 비밀번호를 직접 변경할 수 없습니다.
-                    회원 탈퇴 시 분석 기록과 학습 로드맵 데이터가 삭제될 수 있습니다.
+                    회원 탈퇴 기능은 추후 제공 예정입니다.
                   </p>
 
                   <button type="button" className="danger-btn" onClick={handleWithdraw}>
-                    회원 탈퇴
+                    탈퇴 기능 준비 중
                   </button>
                 </article>
               </div>
