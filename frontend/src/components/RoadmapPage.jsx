@@ -724,6 +724,16 @@ const RoadmapPage = () => {
               )}
             </article>
           </section>
+
+          <section className="roadmap-jobs-cta">
+            <div>
+              <strong>학습 방향을 확인했다면 관심 공고도 함께 살펴보세요.</strong>
+              <p>관심 있는 공고를 저장하고 마이페이지에서 관리할 수 있습니다.</p>
+            </div>
+            <button type="button" onClick={() => navigate('/jobs')}>
+              추천공고 둘러보기
+            </button>
+          </section>
         </>
       )}
 

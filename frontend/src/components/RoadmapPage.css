@@ -9,6 +9,7 @@
 .week-roadmap,
 .roadmap-main-grid,
 .roadmap-resource-grid,
+.roadmap-jobs-cta,
 .roadmap-loading {
   width: min(1120px, 100%);
   margin-inline: auto;
@@ -164,6 +165,55 @@
 .roadmap-resource-grid {
   margin-top: 14px;
   align-items: stretch;
+}
+
+.roadmap-jobs-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid #d7ddec;
+  border-radius: 14px;
+  background: #f8faff;
+  box-shadow: 0 10px 28px rgba(17, 24, 39, 0.04);
+  box-sizing: border-box;
+}
+
+.roadmap-jobs-cta strong {
+  display: block;
+  color: #1c2230;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.roadmap-jobs-cta p {
+  margin: 4px 0 0;
+  color: #536181;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.roadmap-jobs-cta button {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #4f67ee;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(79, 103, 238, 0.16);
+}
+
+.roadmap-jobs-cta button:hover {
+  background: #4158dc;
 }
 
 .roadmap-fallback-notice {
@@ -1187,6 +1237,11 @@
   .roadmap-resource-grid {
     grid-template-columns: 1fr;
   }
+
+  .roadmap-jobs-cta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1229,7 +1284,8 @@
   }
 
   .curriculum-box button,
-  .lecture-item a {
+  .lecture-item a,
+  .roadmap-jobs-cta button {
     width: 100%;
   }
 

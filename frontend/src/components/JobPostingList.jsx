@@ -6,7 +6,7 @@ import './JobPostingList.css';
 const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
 const LEGACY_JOBS_API_URL = 'http://localhost:8080/api/jobs';
 
-const filters = ['전체', '높은 추천도', '백엔드', '프론트엔드', '신입 가능'];
+const filters = ['전체', '높은 추천도'];
 
 const getScoreTone = (score) => {
   if (score >= 80) return 'high';

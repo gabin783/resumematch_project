@@ -209,12 +209,14 @@
 .recommendation-card h2 {
   display: -webkit-box;
   overflow: hidden;
+  min-height: calc(19px * 1.35 * 2);
   margin: 0;
   color: #111827;
   font-size: 19px;
   line-height: 1.35;
   font-weight: 900;
   word-break: keep-all;
+  overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
