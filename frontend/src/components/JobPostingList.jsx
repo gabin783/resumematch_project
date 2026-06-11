@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { BarChart3, ChevronDown, ExternalLink, ShieldCheck, Target } from 'lucide-react';
+import { BarChart3, ExternalLink, ShieldCheck, Target } from 'lucide-react';
 import './JobPostingList.css';
 
 const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
 const LEGACY_JOBS_API_URL = 'http://localhost:8080/api/jobs';
 
-const filters = ['전체', '높은 매칭률', '백엔드', '프론트엔드', '신입 가능'];
+const filters = ['전체', '높은 추천도', '백엔드', '프론트엔드', '신입 가능'];
 
 const getScoreTone = (score) => {
   if (score >= 80) return 'high';
@@ -15,9 +15,9 @@ const getScoreTone = (score) => {
 };
 
 const getScoreLabel = (score) => {
-  if (score >= 80) return `높음 ${score}%`;
-  if (score >= 60) return `보통 ${score}%`;
-  return `도전 ${score}%`;
+  if (score >= 80) return '추천도 높음';
+  if (score >= 60) return '추천도 보통';
+  return '추천도 낮음';
 };
 
 const includesAny = (value, keywords) => {
@@ -58,6 +58,39 @@ const getVisibleSkills = (skills = [], maxCount = 3) => ({
   hiddenCount: Math.max(skills.length - maxCount, 0),
 });
 
+const getFavoriteJobsStorageKey = () => `favoriteJobs:${localStorage.getItem('memberId') || 'guest'}`;
+
+const getJobFavoriteId = (job) => {
+  const rawId = job.id || job.jobId || job.jobPostingId;
+  if (rawId) return String(rawId);
+
+  return `${job.title || 'job'}-${job.companyName || job.company || 'company'}`;
+};
+
+const readFavoriteJobs = () => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(getFavoriteJobsStorageKey()) || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const buildFavoriteJob = (job) => ({
+  id: getJobFavoriteId(job),
+  title: job.title,
+  companyName: job.companyName,
+  requiredSkills: job.matchedSkills || [],
+  skills: job.matchedSkills || [],
+  missingSkills: job.missingSkills || [],
+  matchScore: job.matchScore,
+  source: job.source,
+  platform: job.source,
+  url: job.url,
+  applyUrl: job.url,
+  savedAt: new Date().toISOString(),
+});
+
 function CompanyLogo({ companyName, logoUrl }) {
   const [hasImageError, setHasImageError] = useState(false);
   const initial = getCompanyInitial(companyName);
@@ -87,6 +120,13 @@ function JobPostingList() {
   const [selectedFilter, setSelectedFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [favoriteJobIds, setFavoriteJobIds] = useState(() =>
+    new Set(readFavoriteJobs().map((job) => String(job.id)))
+  );
+
+  useEffect(() => {
+    setFavoriteJobIds(new Set(readFavoriteJobs().map((job) => String(job.id))));
+  }, []);
 
   useEffect(() => {
     setIsLoading(true);
@@ -118,7 +158,7 @@ function JobPostingList() {
     return jobs.filter((job) => {
       const title = job.title || '';
 
-      if (selectedFilter === '높은 매칭률') {
+      if (selectedFilter === '높은 추천도') {
         return job.matchScore >= 80;
       }
 
@@ -145,7 +185,19 @@ function JobPostingList() {
 
   const handleMatchAnalysis = () => {
     // TODO: Connect this action to the resume matching flow with the selected job context.
-    alert('매칭 분석 기능 연결 예정입니다.');
+    alert('상세 분석 기능은 연결 예정입니다.');
+  };
+
+  const handleFavoriteToggle = (job) => {
+    const favoriteId = getJobFavoriteId(job);
+    const favorites = readFavoriteJobs();
+    const isSaved = favorites.some((item) => String(item.id) === favoriteId);
+    const nextFavorites = isSaved
+      ? favorites.filter((item) => String(item.id) !== favoriteId)
+      : [...favorites, buildFavoriteJob(job)];
+
+    localStorage.setItem(getFavoriteJobsStorageKey(), JSON.stringify(nextFavorites));
+    setFavoriteJobIds(new Set(nextFavorites.map((item) => String(item.id))));
   };
 
   return (
@@ -180,10 +232,9 @@ function JobPostingList() {
             </button>
           ))}
         </div>
-        <button type="button" className="job-sort-button">
+        <span className="job-sort-label">
           최신 등록순
-          <ChevronDown size={16} />
-        </button>
+        </span>
       </section>
 
       {isLoading ? (
@@ -197,6 +248,7 @@ function JobPostingList() {
           {filteredJobs.map((job) => {
             const scoreTone = getScoreTone(job.matchScore);
             const missingSkills = getVisibleSkills(job.missingSkills || []);
+            const isFavorite = favoriteJobIds.has(getJobFavoriteId(job));
 
             return (
               <article className="recommendation-card" key={job.jobPostingId}>
@@ -241,8 +293,15 @@ function JobPostingList() {
                     <ExternalLink size={15} />
                   </button>
                   <button type="button" className="analyze-job-btn" onClick={handleMatchAnalysis}>
-                    매칭 분석
+                    상세 분석
                     <BarChart3 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`favorite-job-btn ${isFavorite ? 'saved' : ''}`}
+                    onClick={() => handleFavoriteToggle(job)}
+                  >
+                    {isFavorite ? '저장됨' : '즐겨찾기'}
                   </button>
                 </div>
               </article>

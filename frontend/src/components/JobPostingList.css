@@ -100,8 +100,7 @@
   gap: 10px;
 }
 
-.job-filter-tabs button,
-.job-sort-button {
+.job-filter-tabs button {
   min-height: 36px;
   padding: 0 22px;
   border: 1px solid #d9dfec;
@@ -122,11 +121,14 @@
   color: #fff;
 }
 
-.job-sort-button {
+.job-sort-label {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  color: #111827;
+  min-height: 36px;
+  padding: 0 14px;
+  color: #667085;
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .recommendation-grid {
@@ -322,7 +324,7 @@
 
 .recommendation-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
   margin-top: auto;
 }
@@ -351,6 +353,18 @@
   background: #4c63ff;
   color: #fff;
   box-shadow: 0 10px 22px rgba(76, 99, 255, 0.22);
+}
+
+.favorite-job-btn {
+  border: 1px solid #d9dfec;
+  background: #fff;
+  color: #334155;
+}
+
+.favorite-job-btn.saved {
+  border-color: #4c63ff;
+  background: #eef3ff;
+  color: #3146c8;
 }
 
 .job-state-card {
@@ -424,7 +438,6 @@
     justify-content: flex-start;
   }
 
-  .job-sort-button,
   .job-filter-tabs button {
     flex: 1 1 auto;
   }
