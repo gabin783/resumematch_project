@@ -225,11 +225,29 @@ const initialSelfCheckItems = [
   },
 ];
 
-const createSelfCheckItems = () =>
-  initialSelfCheckItems.map((item) => ({
-    ...item,
-    checked: false,
-  }));
+const fallbackCompletionCriteria = [
+  'JPA 엔티티 관계 이해',
+  'MySQL 테이블 구조 설계',
+  'REST API와 DB 연동 흐름 설명',
+];
+
+const createSelfCheckItems = (items = initialSelfCheckItems) =>
+  (items?.length ? items : initialSelfCheckItems).map((item, index) => {
+    if (typeof item === 'string') {
+      return {
+        id: `self-check-${index}`,
+        label: item,
+        checked: false,
+      };
+    }
+
+    return {
+      ...item,
+      id: item.id || `self-check-${index}`,
+      label: item.label || item.title || String(item),
+      checked: false,
+    };
+  });
 
 const createInitialTaskState = (weeks) =>
   weeks.reduce((acc, week) => {
@@ -371,7 +389,14 @@ const RoadmapPage = () => {
   const weeks = apiWeeks.length > 0 ? apiWeeks : fallbackWeeks;
   const currentWeek = getCurrentWeekNumber(weeks, checkedTasks);
   const selectedWeekData = weeks.find((week) => week.week === selectedWeek) || weeks[0];
+  const selectedWeekIndex = weeks.findIndex((week) => week.week === selectedWeek);
+  const selectedWeekNumber = selectedWeekData?.week || selectedWeek || selectedWeekIndex + 1;
+  const roadmapStorageId = roadmapData?.id || `new-${targetJob || 'roadmap'}-${skillKeywords.join('-') || 'default'}`;
+  const selfCheckStorageKey = `roadmap-self-check:${memberId || 'guest'}:${roadmapStorageId}:week-${selectedWeekNumber}`;
   const selectedWeekTasks = buildWeekTasks(selectedWeekData);
+  const selectedCompletionCriteria = selectedWeekData?.completionCriteria?.length
+    ? selectedWeekData.completionCriteria
+    : fallbackCompletionCriteria;
   const selectedLearningSteps = selectedWeekData.learningSteps || [];
   const selectedPracticeProject = selectedWeekData.practiceProject;
   const selectedSearchQueries = selectedWeekData.recommendedSearchQueries || [];
@@ -417,8 +442,9 @@ const RoadmapPage = () => {
   const completedSelfCheckCount = savedSelfCheckItems.filter((item) => item.checked).length;
   const draftSelfCheckCount = selfCheckItems.filter((item) => item.checked).length;
   const selfCheckTotalCount = savedSelfCheckItems.length;
+  const isSelfCheckComplete = selfCheckItems.length > 0 && draftSelfCheckCount >= selfCheckItems.length;
   const selfCheckMessage =
-    draftSelfCheckCount >= 4
+    isSelfCheckComplete
       ? '이번 주 학습 완료 기준을 충족했습니다.'
       : '아직 보완할 항목이 남아 있습니다.';
 
@@ -431,6 +457,29 @@ const RoadmapPage = () => {
     setCheckedTasks(initialTaskState);
     setSelectedWeek(initialCurrentWeek);
   }, [checkedTasks, isLoading, weeks]);
+
+  useEffect(() => {
+    if (!selectedWeekData || !selfCheckStorageKey) return;
+
+    const weekSelfCheckItems = createSelfCheckItems(selectedWeekData.selfCheckItems);
+
+    try {
+      const storedItems = JSON.parse(localStorage.getItem(selfCheckStorageKey) || '[]');
+      const checkedById = new Map(
+        storedItems.map((item) => [item.id, Boolean(item.checked)])
+      );
+      const nextItems = weekSelfCheckItems.map((item) => ({
+        ...item,
+        checked: checkedById.get(item.id) || false,
+      }));
+
+      setSavedSelfCheckItems(nextItems);
+      setSelfCheckItems(nextItems);
+    } catch {
+      setSavedSelfCheckItems(weekSelfCheckItems);
+      setSelfCheckItems(weekSelfCheckItems);
+    }
+  }, [selectedWeekData, selfCheckStorageKey]);
 
   const handleTaskToggle = (taskId) => {
     if (isFutureSelected) return;
@@ -458,6 +507,7 @@ const RoadmapPage = () => {
 
   const handleSelfCheckSave = () => {
     setSavedSelfCheckItems(selfCheckItems);
+    localStorage.setItem(selfCheckStorageKey, JSON.stringify(selfCheckItems));
     setIsSelfCheckModalOpen(false);
   };
 
@@ -632,9 +682,9 @@ const RoadmapPage = () => {
                   <strong>이번 주 학습 완료 기준</strong>
                   <p>이번 주 학습을 마치면 아래 내용을 설명하거나 구현할 수 있어야 합니다.</p>
                   <ul className="completion-list">
-                    <li>JPA 엔티티 관계 이해</li>
-                    <li>MySQL 테이블 구조 설계</li>
-                    <li>REST API와 DB 연동 흐름 설명</li>
+                    {selectedCompletionCriteria.map((criteria) => (
+                      <li key={criteria}>{criteria}</li>
+                    ))}
                   </ul>
                 </div>
                 <button type="button" onClick={openSelfCheckModal}>자가 점검하기</button>
@@ -708,7 +758,7 @@ const RoadmapPage = () => {
                   </label>
                 ))}
               </div>
-              <div className={`self-check-status ${draftSelfCheckCount >= 4 ? 'complete' : 'incomplete'}`}>
+              <div className={`self-check-status ${isSelfCheckComplete ? 'complete' : 'incomplete'}`}>
                 <strong>{draftSelfCheckCount} / {selfCheckItems.length} 완료</strong>
                 <p>{selfCheckMessage}</p>
               </div>
