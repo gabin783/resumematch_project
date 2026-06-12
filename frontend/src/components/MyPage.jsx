@@ -69,6 +69,30 @@ const getMissingSkills = (result) => {
   return parseStoredList(parsed.missingSkills).slice(0, 6);
 };
 
+const getResumeSkills = (resume) => parseStoredList(resume?.skills).slice(0, 8);
+
+const getJobKeywords = (result) => {
+  const parsed = getAnalysisPayload(result);
+  return uniqueList([
+    ...parseStoredList(result?.jobKeywords),
+    ...parseStoredList(parsed.jobKeywords),
+    ...parseStoredList(parsed.keywords),
+  ]).slice(0, 8);
+};
+
+const getMainTasks = (result) => {
+  const parsed = getAnalysisPayload(result);
+  return uniqueList([
+    ...parseStoredList(result?.mainTasks),
+    ...parseStoredList(parsed.mainTasks),
+  ]).slice(0, 3);
+};
+
+const getJobSummary = (result) => {
+  const parsed = getAnalysisPayload(result);
+  return result?.jobSummary || parsed.jobSummary || parsed.summary || '';
+};
+
 const getRoadmapPayload = (roadmap) => parseJsonSafely(roadmap?.content) || {};
 
 const getRoadmapSkills = (roadmap) => {
@@ -97,7 +121,7 @@ const MyPage = () => {
   const navigate = useNavigate();
   const memberId = localStorage.getItem('memberId');
 
-  const [activeTab, setActiveTab] = useState('analysis');
+  const [activeTab, setActiveTab] = useState('resumeHistory');
   const [profile, setProfile] = useState(null);
   const [resumes, setResumes] = useState([]);
   const [analysisResults, setAnalysisResults] = useState([]);
@@ -333,6 +357,13 @@ const MyPage = () => {
           <nav className="mypage-menu" aria-label="마이페이지 메뉴">
             <button
               type="button"
+              className={activeTab === 'resumeHistory' ? 'active' : ''}
+              onClick={() => setActiveTab('resumeHistory')}
+            >
+              이력서 분석 기록
+            </button>
+            <button
+              type="button"
               className={activeTab === 'analysis' ? 'active' : ''}
               onClick={() => setActiveTab('analysis')}
             >
@@ -384,6 +415,107 @@ const MyPage = () => {
               </article>
             ))}
           </section>
+
+          {activeTab === 'resumeHistory' ? (
+            <section className="content-panel">
+              <div className="panel-heading">
+                <div>
+                  <h2>이력서 분석 기록</h2>
+                  <p>업로드한 이력서 분석 정보와 연결된 채용공고 분석 정보를 함께 확인할 수 있습니다.</p>
+                </div>
+                <span>{resumes.length}건</span>
+              </div>
+
+              {resumes.length === 0 ? (
+                <p className="empty-message">아직 이력서 분석 기록이 없습니다.</p>
+              ) : (
+                <div className="resume-history-list">
+                  {resumes.map((resume, index) => {
+                    const relatedAnalysis = analysisResults[index];
+                    const resumeSkills = getResumeSkills(resume);
+                    const requirementSkills = getRequirementSkills(relatedAnalysis);
+                    const jobKeywords = getJobKeywords(relatedAnalysis);
+                    const mainTasks = getMainTasks(relatedAnalysis);
+                    const jobSummary = getJobSummary(relatedAnalysis);
+
+                    return (
+                      <article key={resume.id} className="resume-analysis-card">
+                        <button
+                          type="button"
+                          className="delete-btn resume-history-delete"
+                          onClick={() => handleDelete(resume.id)}
+                        >
+                          삭제
+                        </button>
+                        <section className="resume-analysis-section">
+                          <span className="eyebrow">이력서 분석</span>
+                          <h3>{resume.originalFileName || '파일명 없음'}</h3>
+                          <p className="record-date">분석 일시: {formatDate(resume.createdAt)}</p>
+
+                          <div className="resume-history-block">
+                            <strong>추출 스킬</strong>
+                            <div className="chip-list">
+                              {resumeSkills.length > 0 ? (
+                                resumeSkills.map((skill) => (
+                                  <span key={`resume-${resume.id}-${skill}`} className="required-skill-tag">
+                                    {skill}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="muted-text">추출된 스킬이 없습니다.</span>
+                              )}
+                            </div>
+                          </div>
+                        </section>
+
+                        <section className="resume-analysis-section jd-section">
+                          <span className="eyebrow">채용공고 분석</span>
+                          <h3>{relatedAnalysis?.targetJob || '연결된 JD 분석 없음'}</h3>
+                          {jobSummary ? <p className="list-card-summary">{jobSummary}</p> : null}
+
+                          <div className="resume-history-block">
+                            <strong>요구 기술</strong>
+                            <div className="chip-list">
+                              {requirementSkills.length > 0 ? (
+                                requirementSkills.map((skill) => (
+                                  <span key={`required-${resume.id}-${skill}`} className="required-skill-tag">
+                                    {skill}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="muted-text">연결된 요구 기술이 없습니다.</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="resume-history-block">
+                            <strong>핵심 키워드</strong>
+                            <div className="chip-list">
+                              {jobKeywords.length > 0 ? (
+                                jobKeywords.map((keyword) => (
+                                  <span key={`keyword-${resume.id}-${keyword}`} className="roadmap-skill-tag">
+                                    {keyword}
+                                  </span>
+                                ))
+                              ) : mainTasks.length > 0 ? (
+                                mainTasks.map((task) => (
+                                  <span key={`task-${resume.id}-${task}`} className="roadmap-skill-tag">
+                                    {task}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="muted-text">핵심 키워드가 없습니다.</span>
+                              )}
+                            </div>
+                          </div>
+                        </section>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          ) : null}
 
           {activeTab === 'analysis' ? (
             <section className="content-panel">

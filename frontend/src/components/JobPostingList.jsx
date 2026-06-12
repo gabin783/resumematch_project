@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { BarChart3, ExternalLink, ShieldCheck, Target } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { BarChart3, Briefcase, ExternalLink, ShieldCheck, Target } from 'lucide-react';
 import './JobPostingList.css';
 
 const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
 const LEGACY_JOBS_API_URL = 'http://localhost:8080/api/jobs';
+const MYPAGE_DASHBOARD_API_URL = 'http://localhost:8080/api/mypage/dashboard';
 
 const filters = ['전체', '높은 추천도'];
 
@@ -116,41 +118,71 @@ function CompanyLogo({ companyName, logoUrl }) {
 }
 
 function JobPostingList() {
+  const navigate = useNavigate();
+  const memberId = localStorage.getItem('memberId');
   const [jobs, setJobs] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
+  const [accessState, setAccessState] = useState('checking');
   const [favoriteJobIds, setFavoriteJobIds] = useState(() =>
     new Set(readFavoriteJobs().map((job) => String(job.id)))
   );
 
   useEffect(() => {
     setFavoriteJobIds(new Set(readFavoriteJobs().map((job) => String(job.id))));
-  }, []);
+  }, [memberId]);
 
   useEffect(() => {
-    setIsLoading(true);
-    setErrorMessage('');
+    const loadRecommendations = async () => {
+      setIsLoading(true);
+      setErrorMessage('');
+      setJobs([]);
 
-    axios.get(RECOMMENDATION_API_URL)
-      .then((response) => {
-        setJobs(response.data || []);
-      })
-      .catch(async (error) => {
-        console.error('추천 공고 조회 실패, 기존 공고 API로 재시도합니다:', error);
+      if (!memberId) {
+        setAccessState('guest');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const dashboardResponse = await axios.get(
+          `${MYPAGE_DASHBOARD_API_URL}?memberId=${encodeURIComponent(memberId)}`
+        );
+        const analysisResults = dashboardResponse.data?.analysisResults || [];
+
+        if (analysisResults.length === 0) {
+          setAccessState('no-analysis');
+          setIsLoading(false);
+          return;
+        }
+
+        setAccessState('ready');
 
         try {
-          const fallbackResponse = await axios.get(LEGACY_JOBS_API_URL);
-          setJobs((fallbackResponse.data || []).map(buildLegacyRecommendation));
-        } catch (fallbackError) {
-          console.error('기존 공고 조회도 실패했습니다:', fallbackError);
-          setErrorMessage('추천 공고를 불러오지 못했습니다.');
+          const response = await axios.get(RECOMMENDATION_API_URL);
+          setJobs(response.data || []);
+        } catch (error) {
+          console.error('추천 공고 조회 실패, 기존 공고 API로 재시도합니다:', error);
+
+          try {
+            const fallbackResponse = await axios.get(LEGACY_JOBS_API_URL);
+            setJobs((fallbackResponse.data || []).map(buildLegacyRecommendation));
+          } catch (fallbackError) {
+            console.error('기존 공고 조회도 실패했습니다:', fallbackError);
+            setErrorMessage('추천 공고를 불러오지 못했습니다.');
+          }
         }
-      })
-      .finally(() => {
+      } catch (error) {
+        console.error('마이페이지 분석 기록 조회 실패:', error);
+        setErrorMessage('추천 기준 확인에 실패했습니다.');
+      } finally {
         setIsLoading(false);
-      });
-  }, []);
+      }
+    };
+
+    loadRecommendations();
+  }, [memberId]);
 
   const filteredJobs = useMemo(() => {
     if (selectedFilter === '전체') return jobs;
@@ -200,15 +232,81 @@ function JobPostingList() {
     setFavoriteJobIds(new Set(nextFavorites.map((item) => String(item.id))));
   };
 
+  const renderAccessEmpty = (type) => {
+    const isGuest = type === 'guest';
+    const chips = isGuest
+      ? ['추천도', '즐겨찾기', '마이페이지 관리', '공고 확인']
+      : ['이력서 분석', '스킬 갭', '추천공고', '즐겨찾기'];
+
+    return (
+      <main className="job-access-empty">
+        <section className="job-access-empty-card">
+          <div className="job-access-empty-visual" aria-hidden="true">
+            <Briefcase size={82} />
+          </div>
+          <h2>{isGuest ? '추천공고를 확인하려면 로그인이 필요합니다' : '아직 추천 기준이 없습니다'}</h2>
+          <p>
+            {isGuest
+              ? (
+                <>
+                  이력서 분석 후 관련 공고를 확인하고
+                  <br />
+                  관심 있는 공고를 마이페이지에서 관리할 수 있습니다.
+                </>
+              )
+              : (
+                <>
+                  이력서와 채용공고를 분석하면
+                  <br />
+                  관련 공고를 확인할 수 있습니다.
+                </>
+              )}
+          </p>
+          <div className="job-access-empty-badges" aria-label="추천공고에서 확인 가능한 항목">
+            {chips.map((chip) => (
+              <span key={chip}>{chip}</span>
+            ))}
+          </div>
+          <div className="job-access-empty-actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={() => navigate(isGuest ? '/login' : '/match')}
+            >
+              {isGuest ? '로그인하기' : '이력서 매칭 시작하기'}
+            </button>
+            <button type="button" className="secondary" onClick={() => navigate('/')}>
+              메인으로 돌아가기
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  };
+
+  if (isLoading) {
+    return (
+      <main className="job-access-empty">
+        <section className="job-access-empty-card loading">
+          추천 공고를 불러오는 중입니다...
+        </section>
+      </main>
+    );
+  }
+
+  if (accessState === 'guest' || accessState === 'no-analysis') {
+    return renderAccessEmpty(accessState);
+  }
+
   return (
     <main className="job-recommendation-page">
       <section className="job-recommendation-hero">
         <div>
           <h1>
             <Target size={30} />
-            맞춤 추천 채용 공고
+            추천 채용 공고
           </h1>
-          <p>이력서와 스킬 분석 결과를 기준으로 추천된 공고입니다.</p>
+          <p>이력서 분석 후 관련 공고를 확인하고 저장할 수 있습니다.</p>
         </div>
         <aside className="recommendation-standard">
           <div className="recommendation-standard-title">
@@ -219,26 +317,44 @@ function JobPostingList() {
         </aside>
       </section>
 
-      <section className="job-filter-panel">
-        <div className="job-filter-tabs" aria-label="추천 공고 필터">
-          {filters.map((filter) => (
-            <button
-              type="button"
-              key={filter}
-              className={selectedFilter === filter ? 'active' : ''}
-              onClick={() => setSelectedFilter(filter)}
-            >
-              {filter}
-            </button>
-          ))}
-        </div>
-        <span className="job-sort-label">
-          최신 등록순
-        </span>
-      </section>
+      {accessState === 'ready' && !isLoading && !errorMessage ? (
+        <section className="job-filter-panel">
+          <div className="job-filter-tabs" aria-label="추천 공고 필터">
+            {filters.map((filter) => (
+              <button
+                type="button"
+                key={filter}
+                className={selectedFilter === filter ? 'active' : ''}
+                onClick={() => setSelectedFilter(filter)}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+          <span className="job-sort-label">
+            최신 등록순
+          </span>
+        </section>
+      ) : null}
 
       {isLoading ? (
         <section className="job-state-card">추천 공고를 불러오는 중입니다...</section>
+      ) : accessState === 'guest' ? (
+        <section className="job-state-card action">
+          <h2>추천공고를 확인하려면 로그인이 필요합니다.</h2>
+          <p>이력서 분석 후 맞춤 추천공고를 확인해보세요.</p>
+          <button type="button" onClick={() => navigate('/login')}>
+            로그인하기
+          </button>
+        </section>
+      ) : accessState === 'no-analysis' ? (
+        <section className="job-state-card action">
+          <h2>아직 추천 기준이 없습니다.</h2>
+          <p>이력서와 채용공고를 먼저 분석하면 추천공고를 확인할 수 있습니다.</p>
+          <button type="button" onClick={() => navigate('/match')}>
+            이력서 매칭 시작하기
+          </button>
+        </section>
       ) : errorMessage ? (
         <section className="job-state-card error">{errorMessage}</section>
       ) : filteredJobs.length === 0 ? (

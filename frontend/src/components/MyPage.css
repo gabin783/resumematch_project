@@ -332,6 +332,7 @@
 }
 
 .match-card-list,
+.resume-history-list,
 .roadmap-card-list {
   display: grid;
   gap: 10px;
@@ -476,6 +477,55 @@
   border: 1px solid #d6def8;
   background: #f8faff;
   color: #3146c8;
+}
+
+.resume-analysis-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid #e0e6f6;
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+}
+
+.resume-history-delete {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
+.resume-analysis-section {
+  min-width: 0;
+}
+
+.resume-analysis-section h3 {
+  padding-right: 42px;
+  margin: 5px 0 0;
+  color: #111827;
+  font-size: 16px;
+  line-height: 1.35;
+  font-weight: 900;
+  word-break: break-word;
+}
+
+.resume-analysis-section.jd-section {
+  padding-left: 18px;
+  border-left: 1px solid #edf1fb;
+}
+
+.resume-history-block {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.resume-history-block strong {
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 900;
 }
 
 .score-pill {
@@ -764,17 +814,20 @@
 }
 
 .match-card-list::-webkit-scrollbar,
+.resume-history-list::-webkit-scrollbar,
 .card-list::-webkit-scrollbar {
   width: 6px;
 }
 
 .match-card-list::-webkit-scrollbar-thumb,
+.resume-history-list::-webkit-scrollbar-thumb,
 .card-list::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: #cfd8ff;
 }
 
 .match-card-list::-webkit-scrollbar-track,
+.resume-history-list::-webkit-scrollbar-track,
 .card-list::-webkit-scrollbar-track {
   background: transparent;
 }
@@ -828,7 +881,19 @@
     display: grid;
   }
 
+  .resume-analysis-card {
+    grid-template-columns: 1fr;
+  }
+
+  .resume-analysis-section.jd-section {
+    padding-top: 14px;
+    padding-left: 0;
+    border-top: 1px solid #edf1fb;
+    border-left: 0;
+  }
+
   .match-card-list,
+  .resume-history-list,
   .roadmap-card-list,
   .card-list {
     height: auto;

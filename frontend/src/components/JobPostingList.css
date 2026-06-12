@@ -369,6 +369,117 @@
   color: #3146c8;
 }
 
+.job-access-empty {
+  min-height: calc(100svh - 58px);
+  display: grid;
+  place-items: center;
+  padding: 36px 20px;
+  background: #f7f8ff;
+  box-sizing: border-box;
+}
+
+.job-access-empty-card {
+  width: min(680px, 100%);
+  display: grid;
+  justify-items: center;
+  padding: 54px 48px;
+  border: 1px solid #d7ddec;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.08);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.job-access-empty-card.loading {
+  min-height: 180px;
+  align-items: center;
+  color: #667085;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.job-access-empty-visual {
+  width: 136px;
+  height: 136px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 26px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+}
+
+.job-access-empty h2 {
+  margin: 0 0 14px;
+  color: #2d3442;
+  font-size: 28px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.job-access-empty p {
+  max-width: 540px;
+  min-height: 53px;
+  margin: 0;
+  color: #4b5563;
+  font-size: 16px;
+  line-height: 1.65;
+  font-weight: 700;
+}
+
+.job-access-empty-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-height: 30px;
+  margin-top: 24px;
+}
+
+.job-access-empty-badges span {
+  flex: 0 1 auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #4f67ee;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.job-access-empty-actions {
+  width: min(340px, 100%);
+  display: grid;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.job-access-empty-actions button {
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.job-access-empty-actions .primary {
+  border: 0;
+  background: #4f67ee;
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(79, 103, 238, 0.22);
+}
+
+.job-access-empty-actions .secondary {
+  border: 1px solid #9baaff;
+  background: #fff;
+  color: #4f67ee;
+}
+
 .job-state-card {
   min-height: 180px;
   display: grid;
@@ -382,6 +493,42 @@
 
 .job-state-card.error {
   color: #dc2626;
+}
+
+.job-state-card.action {
+  gap: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
+}
+
+.job-state-card.action h2 {
+  margin: 0;
+  color: #111827;
+  font-size: 22px;
+  line-height: 1.35;
+  font-weight: 900;
+}
+
+.job-state-card.action p {
+  margin: 0;
+  color: #667085;
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 700;
+}
+
+.job-state-card.action button {
+  min-height: 40px;
+  margin-top: 6px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 9px;
+  background: #4c63ff;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(76, 99, 255, 0.22);
 }
 
 @media (max-width: 960px) {
@@ -407,6 +554,23 @@
 @media (max-width: 620px) {
   .job-recommendation-page {
     padding: 24px 16px 36px;
+  }
+
+  .job-access-empty-card {
+    padding: 42px 24px;
+  }
+
+  .job-access-empty-visual {
+    width: 112px;
+    height: 112px;
+  }
+
+  .job-access-empty h2 {
+    font-size: 24px;
+  }
+
+  .job-access-empty p {
+    font-size: 15px;
   }
 
   .job-recommendation-hero h1 {
