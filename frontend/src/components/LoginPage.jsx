@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import resumeMatchLogo from '../assets/resumematch-logo.svg';
 import './LoginPage.css';
 
@@ -11,6 +12,21 @@ const LoginPage = () => {
 
   const handleKakaoLogin = () => {
     window.location.href = kakaoURL;
+  };
+
+  const handleDemoLogin = async () => {
+    try {
+      const response = await axios.post('http://localhost:8080/api/oauth/demo');
+
+      localStorage.setItem('memberId', response.data.id);
+      localStorage.setItem('nickname', response.data.nickname);
+      localStorage.setItem('isDemo', 'true');
+
+      navigate('/');
+    } catch (error) {
+      console.error('Demo login error:', error);
+      alert('시연용 로그인 중 오류가 발생했습니다.');
+    }
   };
 
   return (
@@ -32,6 +48,10 @@ const LoginPage = () => {
 
         <button type="button" className="kakao-login-button" onClick={handleKakaoLogin}>
           카카오로 계속하기
+        </button>
+
+        <button type="button" className="kakao-login-button" onClick={handleDemoLogin}>
+          시연용 계정으로 체험하기
         </button>
 
         <p className="login-mvp-note">현재 MVP에서는 카카오 로그인만 지원합니다.</p>

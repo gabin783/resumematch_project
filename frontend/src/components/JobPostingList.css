@@ -202,10 +202,6 @@
   flex: 1 1 auto;
 }
 
-.recommendation-title-area .recommendation-tags {
-  margin-top: 10px;
-}
-
 .recommendation-card h2 {
   display: -webkit-box;
   overflow: hidden;
@@ -321,7 +317,7 @@
   font-size: 13px;
   line-height: 1.55;
   font-weight: 700;
-  text-align: left;
+  text-align: center;
 }
 
 .recommendation-actions {

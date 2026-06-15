@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { BarChart3, Briefcase, ExternalLink, ShieldCheck, Target } from 'lucide-react';
+import { BarChart3, Briefcase, ExternalLink, ShieldCheck } from 'lucide-react';
 import './JobPostingList.css';
 
 const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
@@ -54,11 +54,6 @@ const buildLegacyRecommendation = (job) => {
 };
 
 const getCompanyInitial = (companyName = '') => companyName.trim().charAt(0).toUpperCase() || '?';
-
-const getVisibleSkills = (skills = [], maxCount = 3) => ({
-  visible: skills.slice(0, maxCount),
-  hiddenCount: Math.max(skills.length - maxCount, 0),
-});
 
 const getFavoriteJobsStorageKey = () => `favoriteJobs:${localStorage.getItem('memberId') || 'guest'}`;
 
@@ -303,7 +298,7 @@ function JobPostingList() {
       <section className="job-recommendation-hero">
         <div>
           <h1>
-            <Target size={30} />
+            <Briefcase size={30} />
             추천 채용 공고
           </h1>
           <p>이력서 분석 후 관련 공고를 확인하고 저장할 수 있습니다.</p>
@@ -363,7 +358,6 @@ function JobPostingList() {
         <section className="recommendation-grid">
           {filteredJobs.map((job) => {
             const scoreTone = getScoreTone(job.matchScore);
-            const missingSkills = getVisibleSkills(job.missingSkills || []);
             const isFavorite = favoriteJobIds.has(getJobFavoriteId(job));
 
             return (
@@ -373,11 +367,6 @@ function JobPostingList() {
                   <div className="recommendation-title-area">
                     <span className="recommendation-company">{job.companyName}</span>
                     <h2>{job.title}</h2>
-                    <div className="recommendation-tags matched">
-                      {(job.matchedSkills || []).map((skill) => (
-                        <span key={skill}>{skill}</span>
-                      ))}
-                    </div>
                   </div>
                   <div className="recommendation-badges">
                     <span className={`match-score-badge ${scoreTone}`}>{getScoreLabel(job.matchScore)}</span>
@@ -387,19 +376,12 @@ function JobPostingList() {
 
                 <div className="recommendation-detail-grid">
                   <div className="recommendation-reason-block">
-                    <strong>추천 이유</strong>
-                    <p>{job.reason}</p>
+                    <strong>추천 상세</strong>
+                    <p>업데이트 준비 중</p>
                   </div>
                   <div className="recommendation-missing-block">
-                    <strong>보완 필요 스킬</strong>
-                    <div className="recommendation-tags missing">
-                      {missingSkills.visible.map((skill) => (
-                        <span key={skill}>{skill}</span>
-                      ))}
-                      {missingSkills.hiddenCount > 0 ? (
-                        <span>+{missingSkills.hiddenCount}</span>
-                      ) : null}
-                    </div>
+                    <strong>스킬 보완 정보</strong>
+                    <p>업데이트 준비 중</p>
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -292,9 +292,11 @@ const RoadmapPage = () => {
   const [detailModal, setDetailModal] = useState(null);
   const [checkedTasks, setCheckedTasks] = useState({});
   const [selectedWeek, setSelectedWeek] = useState(1);
+  const [expandedMobileWeek, setExpandedMobileWeek] = useState(1);
   const [selfCheckItems, setSelfCheckItems] = useState(createSelfCheckItems);
   const [isSelfCheckModalOpen, setIsSelfCheckModalOpen] = useState(false);
   const [savedSelfCheckItems, setSavedSelfCheckItems] = useState(createSelfCheckItems);
+  const hasRequestedRoadmapRef = useRef(false);
 
   useEffect(() => {
     if (roadmapData) {
@@ -340,6 +342,11 @@ const RoadmapPage = () => {
         return;
       }
 
+      if (hasRequestedRoadmapRef.current) {
+        return;
+      }
+
+      hasRequestedRoadmapRef.current = true;
       setIsLoading(true);
       setRoadmapLoadFailed(false);
 
@@ -447,6 +454,11 @@ const RoadmapPage = () => {
     isSelfCheckComplete
       ? '이번 주 학습 완료 기준을 충족했습니다.'
       : '아직 보완할 항목이 남아 있습니다.';
+
+  useEffect(() => {
+    if (!selectedWeekNumber) return;
+    setExpandedMobileWeek(selectedWeekNumber);
+  }, [selectedWeekNumber]);
 
   useEffect(() => {
     if (isLoading || weeks.length === 0 || Object.keys(checkedTasks).length > 0) return;
@@ -581,20 +593,39 @@ const RoadmapPage = () => {
             const started = weekTasks.some((task) => checkedTasks[task.id]);
             const status = completed ? 'done' : week.week === currentWeek || started ? 'active' : 'waiting';
             const isSelected = week.week === selectedWeek;
+            const isMobileExpanded = expandedMobileWeek === week.week;
+            const nodeSkills = toArray(week.focusSkills || week.tags).slice(0, 2);
 
             return (
             <button
               type="button"
-              className={`week-node ${status} ${isSelected ? 'selected' : ''}`}
+              className={`week-node ${status} ${isSelected ? 'selected' : ''} ${isMobileExpanded ? 'mobile-expanded' : 'mobile-collapsed'}`}
               key={week.week}
-              onClick={() => setSelectedWeek(week.week)}
+              onClick={() => {
+                setSelectedWeek(week.week);
+                setExpandedMobileWeek(week.week);
+              }}
             >
-              <div className="week-dot">
-                {status === 'done' ? <Check size={16} /> : week.week}
+              <div className="week-node-header">
+                <div className="week-node-title">
+                  <div className="week-dot">
+                    {status === 'done' ? <Check size={16} /> : week.week}
+                  </div>
+                  <strong>{week.week}주차</strong>
+                </div>
+                <em>{status === 'done' ? '완료' : status === 'active' ? '진행중' : '대기'}</em>
+                <span className="week-node-toggle" aria-hidden="true" />
               </div>
-              <strong>{week.week}주차</strong>
-              <span>{week.title}</span>
-              <em>{status === 'done' ? '완료' : status === 'active' ? '진행중' : '대기'}</em>
+              <span className="week-node-name">{week.title}</span>
+              {week.summary ? <p className="week-node-summary">{week.summary}</p> : null}
+              {nodeSkills.length > 0 ? (
+                <div className="week-node-tags">
+                  {nodeSkills.map((skill) => (
+                    <small key={`${week.week}-${skill}`}>{skill}</small>
+                  ))}
+                </div>
+              ) : null}
+              <div className="week-node-action">주차 보기</div>
             </button>
             );
           })}

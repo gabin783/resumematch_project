@@ -79,6 +79,25 @@
   padding: 0;
 }
 
+.week-node-header,
+.week-node-title {
+  display: contents;
+}
+
+.week-node-name {
+  color: #606a7d;
+  font-size: 11px;
+  font-weight: 700;
+  order: 3;
+}
+
+.week-node-summary,
+.week-node-tags,
+.week-node-action,
+.week-node-toggle {
+  display: none;
+}
+
 .week-node:focus-visible {
   outline: 3px solid rgba(79, 103, 238, 0.22);
   outline-offset: 5px;
@@ -92,7 +111,8 @@
 }
 
 .week-node.selected strong,
-.week-node.selected span {
+.week-node.selected span,
+.week-node.selected .week-node-name {
   color: #253044;
 }
 
@@ -106,6 +126,7 @@
   color: #fff;
   font-size: 14px;
   font-weight: 900;
+  order: 1;
 }
 
 .week-node.done .week-dot {
@@ -120,6 +141,7 @@
   color: #7d8798;
   font-size: 11px;
   font-weight: 900;
+  order: 2;
 }
 
 .week-node span {
@@ -139,6 +161,7 @@
   font-size: 10px;
   font-style: normal;
   font-weight: 900;
+  order: 4;
 }
 
 .week-node.done em {
@@ -1228,9 +1251,14 @@
   }
 
   .week-node {
-    grid-template-columns: 36px minmax(0, 1fr) auto;
+    grid-template-columns: 36px minmax(0, 1fr);
     justify-items: start;
     text-align: left;
+  }
+
+  .week-node em {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .roadmap-main-grid,
@@ -1247,6 +1275,194 @@
 @media (max-width: 640px) {
   .roadmap-page {
     padding: 24px 16px 40px;
+  }
+
+  .week-roadmap {
+    padding: 14px;
+    border-radius: 12px;
+  }
+
+  .week-roadmap-header {
+    margin-bottom: 10px;
+  }
+
+  .week-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+  }
+
+  .week-node {
+    width: 100%;
+    max-width: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+    gap: 7px;
+    min-height: 72px;
+    padding: 10px 11px;
+    border: 1px solid #dbe2f0;
+    border-radius: 12px;
+    background: #fff;
+    text-align: left;
+    box-shadow: 0 8px 18px rgba(17, 24, 39, 0.04);
+  }
+
+  .week-node.selected {
+    border-color: #9ba9ff;
+    background: #f8faff;
+  }
+
+  .week-node.mobile-expanded {
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .week-node-header,
+  .week-node-title {
+    display: flex;
+    align-items: center;
+  }
+
+  .week-node-header {
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .week-node-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 8px;
+  }
+
+  .week-dot {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    font-size: 13px;
+  }
+
+  .week-node strong {
+    color: #253044;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .week-node em {
+    min-height: 22px;
+    flex: 0 0 auto;
+    justify-self: end;
+    padding: 0 9px;
+    font-size: 10px;
+  }
+
+  .week-node-toggle {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .week-node-toggle::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid #8a93a4;
+    border-bottom: 2px solid #8a93a4;
+    transform: rotate(45deg) translateY(-2px);
+    transition: transform 160ms ease;
+  }
+
+  .week-node.mobile-expanded .week-node-toggle::before {
+    transform: rotate(225deg) translate(-1px, -1px);
+  }
+
+  .week-node-name {
+    color: #1f2937;
+    font-size: 14px;
+    font-weight: 900;
+    line-height: 1.45;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .week-node-summary {
+    display: none;
+    margin: 0;
+    color: #687386;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .week-node-tags {
+    display: none;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .week-node-tags small {
+    max-width: 100%;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #edf2ff;
+    color: #4f67ee;
+    font-size: 11px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .week-node-action {
+    display: none;
+    justify-self: start;
+    align-items: center;
+    min-height: 26px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #eef1f7;
+    color: #4b5563;
+    font-size: 11px;
+    font-weight: 900;
+  }
+
+  .week-node.mobile-expanded .week-node-summary {
+    display: block;
+  }
+
+  .week-node.mobile-expanded .week-node-tags {
+    display: flex;
+  }
+
+  .week-node.mobile-expanded .week-node-action {
+    display: inline-flex;
+  }
+
+  .week-node span,
+  .week-node strong,
+  .task-item strong,
+  .completion-list li,
+  .learning-step-item strong,
+  .learning-step-item p,
+  .practice-project-box,
+  .search-query-list a,
+  .lecture-item strong,
+  .lecture-item small,
+  .roadmap-tags em,
+  .roadmap-jobs-cta strong,
+  .roadmap-jobs-cta p {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .week-node .week-node-name {
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 
   .roadmap-empty-card {
@@ -1296,5 +1512,44 @@
 
   .self-check-actions button {
     width: 100%;
+  }
+
+  .roadmap-modal-backdrop {
+    padding: 10px;
+  }
+
+  .roadmap-modal-header {
+    gap: 10px;
+    padding: 14px;
+  }
+
+  .roadmap-modal-header h2 {
+    margin-bottom: 5px;
+    font-size: 19px;
+  }
+
+  .roadmap-modal-header p {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .roadmap-modal-header button {
+    width: 34px;
+    height: 34px;
+  }
+
+  .roadmap-modal-body {
+    padding: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .roadmap-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .week-node {
+    grid-template-columns: 1fr;
   }
 }

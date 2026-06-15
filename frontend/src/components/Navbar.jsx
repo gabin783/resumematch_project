@@ -36,7 +36,7 @@ const Navbar = () => {
   `;
 
   const accountButtonClass = `
-    h-8 rounded-[9px] border px-4 text-[13px] font-semibold transition-colors
+    h-8 rounded-[9px] border px-2.5 text-[12px] font-semibold transition-colors sm:px-4 sm:text-[13px]
     ${
       isActive('/mypage')
         ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
@@ -46,7 +46,7 @@ const Navbar = () => {
 
   return (
     <nav className="sticky top-0 z-50 flex h-[58px] w-full items-center justify-center border-b border-slate-200 bg-white shadow-sm">
-      <div className="flex w-full max-w-7xl items-center justify-between px-8">
+      <div className="flex w-full max-w-7xl items-center justify-between gap-2 px-3 sm:px-8">
         <div
           className="cursor-pointer"
           onClick={() => navigate('/')}
@@ -64,7 +64,7 @@ const Navbar = () => {
               alt="ResumeMatch"
               className="h-[29px] w-[29px] rounded-[8px] object-contain"
             />
-            <span className="text-[18px] font-black text-[#111827]">
+            <span className="hidden text-[18px] font-black text-[#111827] sm:inline">
               ResumeMatch
             </span>
           </div>
@@ -84,7 +84,7 @@ const Navbar = () => {
           ))}
         </ul>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button
             type="button"
             onClick={() => navigate('/mypage')}
@@ -97,7 +97,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={handleLogout}
-              className="h-8 rounded-[9px] border border-slate-200 bg-white px-4 text-[13px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800"
+              className="h-8 rounded-[9px] border border-slate-200 bg-white px-2.5 text-[12px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-800 sm:px-4 sm:text-[13px]"
             >
               로그아웃
             </button>
@@ -105,7 +105,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={handleLogin}
-              className="h-8 rounded-[9px] bg-indigo-600 px-4 text-[13px] font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+              className="h-8 rounded-[9px] bg-indigo-600 px-2.5 text-[12px] font-semibold text-white shadow-sm transition hover:bg-indigo-500 sm:px-4 sm:text-[13px]"
             >
               로그인
             </button>

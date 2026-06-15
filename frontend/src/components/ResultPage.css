@@ -965,6 +965,9 @@
 
   .result-card {
     padding: 20px;
+    height: auto;
+    min-height: auto;
+    overflow: visible;
   }
 
   .result-empty-card {
@@ -986,28 +989,67 @@
   }
 
   .result-cta button {
-    height: 68px;
-    font-size: 20px;
+    height: 58px;
+    font-size: 17px;
   }
 
   .skill-modal-backdrop {
-    padding: 16px;
+    padding: 10px;
   }
 
   .skill-modal-header {
-    padding: 18px;
+    gap: 10px;
+    padding: 14px;
   }
 
   .skill-modal-header h2 {
-    font-size: 21px;
+    margin-bottom: 5px;
+    font-size: 19px;
+  }
+
+  .skill-modal-header p {
+    font-size: 12.5px;
+    line-height: 1.4;
+  }
+
+  .skill-modal-header button {
+    width: 34px;
+    height: 34px;
   }
 
   .skill-modal-list {
-    padding: 16px 18px 18px;
+    padding: 14px;
+  }
+
+  .summary-modal-content,
+  .jd-detail-content {
+    padding: 14px;
   }
 
   .skill-detail-top {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .skill-detail-card,
+  .summary-modal-content dd,
+  .jd-detail-tags span,
+  .jd-detail-tasks span,
+  .result-tags span,
+  .jd-summary-text {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 420px) {
+  .result-page {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .result-cta button {
+    height: 54px;
+    font-size: 16px;
   }
 }

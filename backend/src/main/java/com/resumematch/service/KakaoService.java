@@ -16,6 +16,9 @@ import org.springframework.web.client.RestTemplate;
 import com.resumematch.entity.Member;
 import com.resumematch.repository.MemberRepository;
 
+import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
+
 @Service
 @RequiredArgsConstructor
 public class KakaoService {
@@ -59,6 +62,26 @@ public class KakaoService {
     }
 
     // 🔑 액세스 토큰 발급 요청 (카카오 공식 문서 규격)
+    public Member demoLogin() {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Long demoKakaoId;
+
+        do {
+            demoKakaoId = -((System.currentTimeMillis() * 100000) + random.nextInt(100000));
+        } while (memberRepository.findByKakaoId(demoKakaoId).isPresent());
+
+        String demoCode = UUID.randomUUID().toString().replace("-", "").substring(0, 6);
+
+        Member demoMember = Member.builder()
+                .kakaoId(demoKakaoId)
+                .nickname("시연용 사용자 " + demoCode)
+                .email("demo_" + demoCode + "@resumematch.local")
+                .bio("시연용 계정입니다.")
+                .build();
+
+        return memberRepository.save(demoMember);
+    }
+
     private String getAccessToken(String code) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");

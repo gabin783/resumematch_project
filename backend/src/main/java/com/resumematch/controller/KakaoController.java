@@ -33,4 +33,15 @@ public class KakaoController {
             return ResponseEntity.internalServerError().body("카카오 로그인 실패");
         }
     }
+
+    @PostMapping("/demo")
+    public ResponseEntity<?> demoLogin() {
+        try {
+            Member member = kakaoService.demoLogin();
+            return ResponseEntity.ok(member);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("데모 로그인 실패");
+        }
+    }
 }

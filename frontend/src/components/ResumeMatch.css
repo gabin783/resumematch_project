@@ -807,6 +807,9 @@
 
   .rm-step-label {
     font-size: 11px;
+    line-height: 1.25;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .rm-demo-section {
@@ -859,8 +862,8 @@
   }
 
   .rm-field textarea {
-    min-height: 240px;
-    height: 260px;
+    min-height: 190px;
+    height: 210px;
   }
 
   .rm-analyze-button {
@@ -870,6 +873,35 @@
   .rm-action-bar {
     width: 100%;
     padding-bottom: 14px;
+  }
+
+  .rm-demo-url-row code,
+  .rm-url-status,
+  .rm-extract-summary,
+  .rm-extract-detail,
+  .rm-ai-note,
+  .rm-keywords span,
+  .rm-skills span,
+  .rm-field input,
+  .rm-field textarea {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+@media (max-width: 420px) {
+  .rm-page {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .rm-step-label {
+    font-size: 10px;
+  }
+
+  .rm-field textarea {
+    min-height: 170px;
+    height: 190px;
   }
 }
 

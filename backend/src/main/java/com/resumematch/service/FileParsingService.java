@@ -21,16 +21,15 @@ public class FileParsingService {
 
         filename = filename.toLowerCase();
 
-        // 1. PDF 파일일 경우 (기존 PDFBox 사용)
+        // 1. PDF 파일일 경우 (PDFBox 사용)
         if (filename.endsWith(".pdf")) {
             try (PDDocument document = PDDocument.load(file.getInputStream())) {
                 PDFTextStripper pdfStripper = new PDFTextStripper();
                 return pdfStripper.getText(document);
             }
         }
-        // 2. 워드 파일(.docx)일 경우 (Apache POI 사용 및 예열 확인용 로그 추가 ✨)
+        // 2. 워드 파일(.docx)일 경우 (Apache POI 사용)
         else if (filename.endsWith(".docx")) {
-            System.out.println("--> ⏳ 워드 엔진(POI) 초기화 및 텍스트 추출 시작... (첫 실행 시 5~10초 소요될 수 있습니다)");
 
             try (InputStream is = file.getInputStream();
                  XWPFDocument document = new XWPFDocument(is);
