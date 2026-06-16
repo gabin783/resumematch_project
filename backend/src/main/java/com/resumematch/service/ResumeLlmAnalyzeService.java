@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,6 +40,72 @@ public class ResumeLlmAnalyzeService {
             "Java", "Spring", "Spring Boot", "React", "MySQL", "Oracle", "Python", "Flask",
             "Docker", "Nginx", "AWS", "TypeScript", "Next.js", "JPA", "MyBatis", "Redis",
             "Kubernetes", "Git", "Figma", "GitHub", "GitHub Actions", "JavaScript", "SQL", "WebFlux"
+    );
+
+    private static final List<String> KNOWN_IT_SKILLS = List.of(
+            "GitHub Actions", "Google Workspace", "Spring Boot", "ASP.NET", "AWS EC2", "REST API",
+            "JavaScript", "TypeScript", "Kubernetes", "Terraform", "Datadog", "ArgoCD",
+            "QueryDSL", "PostgreSQL", "MongoDB", "MyBatis", "Next.js", "WebFlux",
+            "Docker", "Oracle", "Python", "React", "MySQL", "Redis", "Kafka",
+            "Kotlin", "GitHub", "Spring", "Figma", "Nginx", "Flask", ".NET",
+            "Java", "JPA", "AWS", "SQL", "Git", "DB", "QA", "AI", "UI", "UX", "C", "R"
+    );
+
+    private static final Set<String> SHORT_SKILL_WHITELIST = Set.of(
+            "hr", "qa", "ai", "db", "ui", "ux", "sql"
+    );
+
+    private static final Set<String> SKILL_WHITELIST = Set.of(
+            "hr", "qa", "ai", "db", "ui", "ux", "sql",
+            "specialist", "excel", "powerpoint", "google workspace",
+            "java", "spring", "spring boot", "react", "mysql", "oracle", "python", "flask",
+            "docker", "nginx", "aws", "typescript", "next.js", "jpa", "mybatis", "redis",
+            "kubernetes", "git", "figma", "github", "github actions", "javascript", "webflux",
+            "rest api", "querydsl", "postgresql", "mongodb", "jenkins", "ci/cd",
+            "채용", "채용 프로세스 운영", "이력서 검토", "면접 일정 조율", "지원자 커뮤니케이션",
+            "온보딩", "온보딩 운영", "인사 데이터 관리", "근태 관리", "교육 운영",
+            "조직문화 프로그램 지원", "문서 작성 및 자료 정리", "채용 플랫폼 운영"
+    );
+
+    private static final Set<String> EMAIL_DOMAIN_TOKENS = Set.of(
+            "com", ".com", "net", ".net", "org", ".org", "co", "kr", "co.kr", ".co.kr",
+            "gmail", "naver", "daum", "kakao", "hanmail", "hotmail", "outlook", "icloud",
+            "example", "mail", "email"
+    );
+
+    private static final Set<String> LOW_VALUE_STANDALONE_TOKENS = Set.of(
+            "google", "workspace"
+    );
+
+    private static final Set<String> PERSONAL_NAME_TOKENS = Set.of(
+            "kim", "lee", "park", "choi", "jung", "jeong", "kang", "jo", "cho", "yoon",
+            "jang", "lim", "im", "han", "oh", "seo", "shin", "kwon", "hwang", "song",
+            "hong", "yang", "ko", "go", "moon", "baek", "nam", "ryu", "yu", "yoo",
+            "minseo", "minsu", "minho", "jiho", "jisu", "jisoo", "jiwon", "seoyeon",
+            "seojun", "seohyun", "hyunwoo", "sujin", "yujin", "eunji", "john", "jane"
+    );
+
+    private static final Set<String> SKILL_SECTION_KEYWORDS = Set.of(
+            "보유 역량", "핵심 역량", "보유 기술", "기술 스택", "스킬",
+            "skills", "skill", "tech stack", "technical skills", "core competencies", "competencies"
+    );
+
+    private static final Set<String> TECHNICAL_SKILL_SECTION_KEYWORDS = Set.of(
+            "보유 기술", "기술 스택", "스킬", "skills", "skill", "tech stack", "technical skills"
+    );
+
+    private static final Set<String> NON_SKILL_SECTION_KEYWORDS = Set.of(
+            "경력", "경력사항", "프로젝트", "프로젝트 경험", "주요 업무", "담당 업무",
+            "구현 내용", "기능", "설명", "결과", "성과", "학습 방향", "학력", "교육",
+            "자격", "자격증", "수상", "어학", "자기소개", "소개", "연락처", "개인정보",
+            "인적사항", "경험", "활동", "기타",
+            "work experience", "experience", "projects", "education", "certification",
+            "certifications", "awards", "contact", "profile", "summary"
+    );
+
+    private static final Set<String> LOW_VALUE_SKILL_PHRASES = Set.of(
+            "프로젝트", "학습 방향", "오류 분석", "강점", "약점", "기능", "설명", "결과",
+            "구현 내용", "주요 업무", "담당 업무"
     );
 
     private final ResumeAnalyzerService resumeAnalyzerService;
@@ -71,7 +138,7 @@ public class ResumeLlmAnalyzeService {
 
         try {
             String content = callCommercialLlm(resumeText.trim());
-            ResumeParseResponse response = parseLlmResponse(content);
+            ResumeParseResponse response = parseLlmResponse(content, resumeText);
 
             if (response.getSkills().isEmpty()) {
                 log.warn("Resume LLM analyze returned no skills");
@@ -141,7 +208,7 @@ public class ResumeLlmAnalyzeService {
 
     private String buildPrompt(String resumeText) {
         return """
-                너는 IT 이력서 분석 전문가입니다.
+                너는 이력서 분석 전문가입니다.
                 다음 이력서 내용을 분석해서 JSON만 반환하세요.
 
                 반환 형식:
@@ -157,17 +224,18 @@ public class ResumeLlmAnalyzeService {
 
                 핵심 규칙:
                 - JSON 외의 설명, 마크다운, 코드블록은 절대 포함하지 마세요.
-                - Technology Stack, 기술 스택, Skills, Stack 섹션이 있으면 해당 내용을 최우선으로 반영하세요.
-                - 이력서에 명시된 구체 기술 스택은 누락하지 마세요.
-                - 이력서에 근거가 없는 기술은 과도하게 추측하지 마세요.
+                - Technology Stack, 기술 스택, Skills, Stack, 보유 역량, 핵심 역량 섹션이 있으면 해당 내용을 최우선으로 반영하세요.
+                - 이력서에 명시된 구체 기술 스택과 업무 역량 구문은 누락하지 마세요.
+                - 이력서에 근거가 없는 기술이나 역량은 과도하게 추측하지 마세요.
 
                 skills 규칙:
-                - skills는 화면에 표시할 핵심 기술 스택 목록입니다.
-                - skills에는 직무명, 역할명, 추상 역량명이 아니라 구체적인 기술명만 넣으세요.
+                - skills는 화면에 표시할 핵심 보유 역량 또는 기술 스택 목록입니다.
+                - 개발 직무는 구체적인 기술명 위주로, HR/운영/기획 직무는 이력서의 보유 역량 bullet에 적힌 업무 구문 위주로 넣으세요.
                 - skills는 최소 8개, 최대 20개까지 추출하세요. 단, 이력서에 명시된 기술이 적으면 있는 만큼만 반환하세요.
-                - skills에 넣으면 좋은 값: 프로그래밍 언어, 프레임워크, 라이브러리, 데이터베이스, 클라우드/DevOps 도구, 협업/개발 도구, 구체적인 개발 기술.
+                - skills에 넣으면 좋은 값: 프로그래밍 언어, 프레임워크, 라이브러리, 데이터베이스, 클라우드/DevOps 도구, 협업/개발 도구, 구체적인 개발 기술, 구체적인 HR/운영 업무 역량.
                 - 예: Java, Spring Boot, JPA, QueryDSL, MySQL, PostgreSQL, Redis, MongoDB, React, TypeScript, Docker, Kubernetes, AWS, Jenkins, GitHub Actions, REST API, Git.
-                - skills에 넣으면 안 되는 값: 백엔드 개발, 프론트엔드 개발, 풀스택 개발, 서버 개발, 데이터베이스 모델링, 시스템 설계, 협업, 문제 해결, 커뮤니케이션.
+                - HR 예: 채용 프로세스 운영, 이력서 검토, 면접 일정 조율, 지원자 커뮤니케이션, 온보딩 운영, 인사 데이터 관리, 근태 관리, 교육 운영, 조직문화 프로그램 지원, 채용 플랫폼 운영.
+                - skills에 넣으면 안 되는 값: 백엔드 개발, 프론트엔드 개발, 풀스택 개발, 서버 개발처럼 너무 넓은 직무명, 또는 협업, 문제 해결처럼 근거가 없는 추상어.
 
                 필드별 규칙:
                 - technicalSkills에는 skills와 유사하게 구체 기술명을 넣으세요.
@@ -190,7 +258,7 @@ public class ResumeLlmAnalyzeService {
                 """.formatted(resumeText);
     }
 
-    private ResumeParseResponse parseLlmResponse(String content) throws Exception {
+    private ResumeParseResponse parseLlmResponse(String content, String resumeText) throws Exception {
         String json = cleanJson(content);
         ResumeParseResponse parsed;
         try {
@@ -200,11 +268,13 @@ public class ResumeLlmAnalyzeService {
             throw e;
         }
 
-        List<String> technicalSkills = normalizeList(parsed.getTechnicalSkills());
-        List<String> skills = normalizeList(parsed.getSkills());
+        List<String> sectionSkills = extractSectionSkillPhrases(resumeText);
+        List<String> technicalSkills = sanitizeSkillList(parsed.getTechnicalSkills());
+        List<String> skills = sanitizeSkillList(mergeSkillCandidates(sectionSkills, parsed.getSkills()));
         if (skills.isEmpty()) {
             skills = technicalSkills;
         }
+        technicalSkills = sanitizeSkillList(mergeSkillCandidates(sectionSkills, technicalSkills));
 
         List<String> keywords = normalizeList(parsed.getKeywords());
         if (keywords.isEmpty()) {
@@ -228,12 +298,13 @@ public class ResumeLlmAnalyzeService {
         log.warn("Resume LLM analyze failed, fallback to local analyzer: reason={}", reason);
 
         try {
+            List<String> sectionSkills = extractSectionSkillPhrases(resumeText);
             List<String> cleanedKeywords = extractLocalKeywords(resumeText);
             List<String> aiCandidates = cleanedKeywords.stream()
                     .filter(word -> word.matches(".*[a-zA-Z]+.*"))
                     .collect(Collectors.toList());
 
-            List<String> finalSkills = new ArrayList<>();
+            List<String> finalSkills = new ArrayList<>(sectionSkills);
             if (!aiCandidates.isEmpty()) {
                 String prompt = "[목록]: " + String.join(", ", aiCandidates) + "\n\n" +
                         "명령: 이 목록에서 프로그래밍 언어, 프레임워크, DB, 인프라 도구만 골라주세요.\n" +
@@ -256,12 +327,12 @@ public class ResumeLlmAnalyzeService {
                 }
             }
 
-            List<String> distinctSkills = normalizeList(finalSkills);
+            List<String> distinctSkills = sanitizeSkillList(finalSkills);
             if (distinctSkills.isEmpty()) {
-                distinctSkills = cleanedKeywords.stream()
+                distinctSkills = sanitizeSkillList(cleanedKeywords.stream()
                         .filter(word -> word.matches(".*[a-zA-Z]+.*"))
                         .limit(12)
-                        .collect(Collectors.toList());
+                        .collect(Collectors.toList()));
             }
 
             log.info("Resume local fallback analyze complete: skills={}, keywords={}", distinctSkills.size(), cleanedKeywords.size());
@@ -303,6 +374,300 @@ public class ResumeLlmAnalyzeService {
                 .filter(word -> !STOP_WORDS.contains(word))
                 .distinct()
                 .collect(Collectors.toList());
+    }
+
+    private List<String> extractSectionSkillPhrases(String resumeText) {
+        if (resumeText == null || resumeText.trim().isEmpty()) {
+            return List.of();
+        }
+
+        List<String> candidates = new ArrayList<>();
+        boolean inSkillSection = false;
+        boolean technicalSkillSection = false;
+        int blankLinesInSection = 0;
+
+        for (String rawLine : resumeText.split("\\R+")) {
+            String line = normalizeResumeLine(rawLine);
+            if (line.isEmpty()) {
+                if (inSkillSection && ++blankLinesInSection >= 2) {
+                    inSkillSection = false;
+                    technicalSkillSection = false;
+                }
+                continue;
+            }
+            blankLinesInSection = 0;
+
+            String lineWithoutBullet = stripBulletMarker(line);
+            if (isSkillSectionHeader(lineWithoutBullet)) {
+                inSkillSection = true;
+                technicalSkillSection = isTechnicalSkillSectionHeader(lineWithoutBullet);
+                continue;
+            }
+
+            if (inSkillSection && isNonSkillSectionHeader(lineWithoutBullet)) {
+                inSkillSection = false;
+                technicalSkillSection = false;
+                continue;
+            }
+
+            if (!inSkillSection) {
+                continue;
+            }
+
+            candidates.addAll(splitSkillLine(lineWithoutBullet, technicalSkillSection));
+        }
+
+        return sanitizeSkillList(candidates);
+    }
+
+    private List<String> splitSkillLine(String line, boolean technicalSkillSection) {
+        String cleaned = cleanSkillPhrase(line);
+        if (cleaned.isEmpty() || cleaned.endsWith(":")) {
+            return List.of();
+        }
+
+        List<String> knownSkills = extractKnownItSkills(cleaned);
+        if (technicalSkillSection && !knownSkills.isEmpty()) {
+            return knownSkills;
+        }
+
+        if (knownSkills.size() >= 2 && looksLikeTechnologyList(cleaned)) {
+            return knownSkills;
+        }
+
+        if (technicalSkillSection) {
+            return List.of();
+        }
+
+        if (cleaned.contains(",") || cleaned.contains("，")) {
+            return Arrays.stream(cleaned.split("[,，]"))
+                    .map(this::cleanSkillPhrase)
+                    .filter(value -> !value.isEmpty())
+                    .collect(Collectors.toList());
+        }
+
+        return List.of(cleaned);
+    }
+
+    private List<String> extractKnownItSkills(String line) {
+        List<String> found = new ArrayList<>();
+        String remaining = " " + line + " ";
+
+        for (String skill : KNOWN_IT_SKILLS) {
+            String pattern = "(?i)(?<![A-Za-z0-9+#.])" + skill.replace(".", "\\.").replace("+", "\\+").replace(" ", "\\s+") + "(?![A-Za-z0-9+#.])";
+            if (remaining.matches(".*" + pattern + ".*")) {
+                found.add(skill);
+                remaining = remaining.replaceAll(pattern, " ");
+            }
+        }
+
+        return found;
+    }
+
+    private boolean looksLikeTechnologyList(String line) {
+        String normalized = line.replaceAll("[,/|·•]", " ").trim();
+        return !normalized.matches(".*[가-힣].*")
+                && normalized.split("\\s+").length >= 2
+                && !normalized.matches(".*[.!?].*");
+    }
+
+    private String normalizeResumeLine(String value) {
+        return value == null ? "" : value
+                .replace('\u00a0', ' ')
+                .replaceAll("\\s+", " ")
+                .trim();
+    }
+
+    private String stripBulletMarker(String value) {
+        return value.replaceFirst("^\\s*(?:#{1,6}\\s*)?(?:[-*•·●○▪▫■□◆◇▶▷]|\\d+[.)]|[가-힣][.)])\\s+", "").trim();
+    }
+
+    private String cleanSkillPhrase(String value) {
+        String cleaned = normalizeResumeLine(value)
+                .replaceFirst("^[\\[【(]?[A-Za-z가-힣 ]{1,15}[\\]】)]?\\s*[:：]\\s*", "")
+                .replaceAll("\\s*(사용|활용|경험)$", "")
+                .trim();
+
+        if (cleaned.equalsIgnoreCase("Google Workspace")) {
+            return "Google Workspace";
+        }
+
+        return cleaned;
+    }
+
+    private boolean isSkillSectionHeader(String line) {
+        String normalized = normalizeSectionTitle(line);
+        return SKILL_SECTION_KEYWORDS.stream().anyMatch(keyword -> {
+            String normalizedKeyword = normalizeToken(keyword);
+            return normalized.equals(normalizedKeyword)
+                    || normalized.startsWith(normalizedKeyword + " ")
+                    || normalized.startsWith(normalizedKeyword + "-");
+        });
+    }
+
+    private boolean isTechnicalSkillSectionHeader(String line) {
+        String normalized = normalizeSectionTitle(line);
+        return TECHNICAL_SKILL_SECTION_KEYWORDS.stream().anyMatch(keyword -> {
+            String normalizedKeyword = normalizeToken(keyword);
+            return normalized.equals(normalizedKeyword)
+                    || normalized.startsWith(normalizedKeyword + " ")
+                    || normalized.startsWith(normalizedKeyword + "-");
+        });
+    }
+
+    private boolean isNonSkillSectionHeader(String line) {
+        String normalized = normalizeSectionTitle(line);
+        String compact = normalized.replace(" ", "");
+        if (normalized.length() > 40) {
+            return false;
+        }
+
+        return NON_SKILL_SECTION_KEYWORDS.stream().anyMatch(keyword -> {
+            String normalizedKeyword = normalizeToken(keyword);
+            return normalized.equals(normalizedKeyword) || compact.equals(normalizedKeyword.replace(" ", ""));
+        });
+    }
+
+    private String normalizeSectionTitle(String line) {
+        return normalizeToken(line)
+                .replaceFirst("^#{1,6}\\s*", "")
+                .replaceAll("^[\\[【(<{]+|[\\]】)>}]+$", "")
+                .replaceAll("[:：]$", "")
+                .trim();
+    }
+
+    private List<String> mergeSkillCandidates(List<String> preferred, List<String> secondary) {
+        List<String> merged = new ArrayList<>();
+        if (preferred != null) {
+            merged.addAll(preferred);
+        }
+        if (secondary != null) {
+            merged.addAll(secondary);
+        }
+        return merged;
+    }
+
+    private List<String> sanitizeSkillList(List<String> values) {
+        return normalizeList(values).stream()
+                .filter(this::isUsefulResumeSkill)
+                .collect(Collectors.collectingAndThen(
+                        Collectors.toCollection(LinkedHashSet::new),
+                        List::copyOf
+                ));
+    }
+
+    private boolean isUsefulResumeSkill(String value) {
+        if (value == null) {
+            return false;
+        }
+
+        String skill = value.trim();
+        if (skill.isEmpty() || skill.length() > 60) {
+            return false;
+        }
+
+        String normalized = normalizeToken(skill);
+        if (skill.equals("C") || skill.equals("R") || skill.equals(".NET") || skill.equals("ASP.NET")) {
+            return true;
+        }
+
+        if (SKILL_WHITELIST.contains(normalized)) {
+            return true;
+        }
+
+        if (LOW_VALUE_SKILL_PHRASES.contains(normalized)) {
+            return false;
+        }
+
+        if (skill.matches("(?i).*[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,}.*")) {
+            return false;
+        }
+
+        if (skill.matches("(?i).*(https?://|www\\.|[a-z0-9-]+\\.(com|net|org|co\\.kr|kr|io|dev)).*")) {
+            return false;
+        }
+
+        if (skill.matches(".*\\d{2,4}[-.\\s]?\\d{3,4}[-.\\s]?\\d{4}.*")) {
+            return false;
+        }
+
+        if (skill.matches("^\\d+$") || skill.matches("^[\\p{Punct}\\s]+$")) {
+            return false;
+        }
+
+        if (EMAIL_DOMAIN_TOKENS.contains(normalized)) {
+            return false;
+        }
+
+        if (LOW_VALUE_STANDALONE_TOKENS.contains(normalized)) {
+            return false;
+        }
+
+        String noEdgePunctuation = normalized.replaceAll("^[._-]+|[._-]+$", "");
+        if (EMAIL_DOMAIN_TOKENS.contains(noEdgePunctuation)) {
+            return false;
+        }
+
+        if (skill.matches(".*[.@].*") && !isKnownDottedSkill(normalized)) {
+            return false;
+        }
+
+        if (extractKnownItSkills(skill).size() >= 2) {
+            return false;
+        }
+
+        if (looksLikeFeatureDescription(skill)) {
+            return false;
+        }
+
+        if (skill.matches("^[a-z]+$")) {
+            if (skill.length() <= 2) {
+                return SHORT_SKILL_WHITELIST.contains(normalized);
+            }
+
+            if (PERSONAL_NAME_TOKENS.contains(normalized)) {
+                return false;
+            }
+        }
+
+        if (skill.matches("^[A-Za-z]+$") && skill.length() == 1) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean looksLikeFeatureDescription(String value) {
+        String normalized = normalizeToken(value);
+        boolean hasKnownTech = !extractKnownItSkills(value).isEmpty();
+
+        if (hasKnownTech && normalized.matches(".*\\s(로|으로|에|에서)\\s.*")) {
+            return true;
+        }
+
+        if (normalized.matches(".*(저장하고|비교하여|정리하고|활용해|활용하여|만드|구현하고|연동하고)$")) {
+            return true;
+        }
+
+        if (normalized.matches(".*\\s(을|를)\\s+[^\\s]+$")) {
+            return true;
+        }
+
+        if (normalized.matches(".*(프로젝트로|이력서에|결과물을|요구사항을|분석 결과|이력서 분석).*")) {
+            return true;
+        }
+
+        return normalized.split("\\s+").length >= 7;
+    }
+
+    private boolean isKnownDottedSkill(String normalized) {
+        return normalized.equals("next.js") || normalized.equals("node.js") || normalized.equals("vue.js");
+    }
+
+    private String normalizeToken(String value) {
+        return value.trim()
+                .replaceAll("\\s+", " ")
+                .toLowerCase(Locale.ROOT);
     }
 
     private boolean isLikelySkill(String value) {
