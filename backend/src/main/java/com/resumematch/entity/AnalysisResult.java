@@ -18,6 +18,8 @@ public class AnalysisResult {
 
     private Long memberId; // 일단 1L로 고정해서 사용
 
+    private Long resumeId; // 이 분석에 사용된 이력서 ID
+
     private String targetJob; // 목표 직무
 
     @Column(columnDefinition = "TEXT")
@@ -48,11 +50,15 @@ public class AnalysisResult {
 
     private LocalDateTime jobAnalyzedAt;
 
+    @Builder.Default
+    private Boolean gapDeleted = false; // 매칭 분석 목록에서 숨김 처리
+
     private LocalDateTime createdAt;
 
     @PrePersist
     public void prePersist() {
         this.createdAt = LocalDateTime.now();
         if (this.memberId == null) this.memberId = 1L;
+        if (this.gapDeleted == null) this.gapDeleted = false;
     }
 }

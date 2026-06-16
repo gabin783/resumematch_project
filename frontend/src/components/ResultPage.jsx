@@ -9,7 +9,6 @@ import {
 import './ResultPage.css';
 
 const defaultOwnedSkills = ['의사소통', '문제 해결', '데이터 분석', '협업', '기획'];
-const defaultMatchedSkills = ['데이터 처리', 'Python 기반 분석'];
 const defaultPartialSkills = ['머신러닝 기초', '통계 분석'];
 const defaultNeedSkills = ['고급 SQL', '모델 검증 경험'];
 
@@ -231,10 +230,10 @@ const buildStrengthSummary = (skills) => {
   const skillNames = formatSkillNames(skills);
 
   if (!skillNames) {
-    return '직무와 연결되는 기본 역량이 확인됩니다. 프로젝트 경험을 통해 API 연동과 기술 스택 이해도도 일부 확인됩니다.';
+    return '공고 요구 기술과 직접 일치하는 보유 기술은 확인되지 않습니다. 이력서에는 다른 직무 역량이 확인되지만, 해당 채용공고의 핵심 기술과의 직접 연관성은 낮습니다.';
   }
 
-  return `${skillNames} 경험이 확인됩니다. 프로젝트 경험을 통해 API 연동과 기술 스택 이해도도 일부 확인됩니다.`;
+  return `${skillNames} 경험이 확인됩니다.`;
 };
 
 const buildWeaknessSummary = (skills) => {
@@ -335,7 +334,7 @@ const ResultPage = () => {
     const matchedSkills =
       matchedSkillScores.length > 0
         ? matchedSkillScores.map((item) => item.name)
-        : defaultMatchedSkills;
+        : [];
     const partialSkills =
       partialSkillScores.length > 0
         ? partialSkillScores.map((item) => item.name)
@@ -375,7 +374,7 @@ const ResultPage = () => {
     const strengthSkills =
       matchedSkills.length > 0
         ? matchedSkills
-        : ownedProgress.map((item) => item.name);
+        : [];
     const weaknessSkills = needSkills.length > 0
       ? needSkills
       : missingProgress.map((item) => item.name);

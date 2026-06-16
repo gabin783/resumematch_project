@@ -90,6 +90,7 @@ public class ResumeController {
 
             AnalysisResult resultEntity = AnalysisResult.builder()
                     .memberId(memberId)
+                    .resumeId(latestResume.getId())
                     .targetJob(response.getTargetJob())
                     .jdText(requestDto.getJdText())
                     .analysis(toJson(objectMapper, response))
@@ -156,23 +157,54 @@ public class ResumeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteResume(@PathVariable Long id) {
+    public ResponseEntity<?> deleteResume(
+            @PathVariable Long id,
+            @RequestParam(value = "memberId", required = false) Long memberId) {
+        if (memberId == null || memberId <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
+
         try {
-            resumeRepository.deleteById(id);
+            Resume resume = resumeRepository.findById(id).orElse(null);
+            if (resume == null) {
+                return ResponseEntity.status(404).body("삭제할 이력서 기록을 찾을 수 없습니다.");
+            }
+
+            if (!Objects.equals(resume.getMemberId(), memberId)) {
+                return ResponseEntity.status(403).body("삭제 권한이 없습니다.");
+            }
+
+            resumeRepository.delete(resume);
             return ResponseEntity.ok().body("삭제 완료");
         } catch (Exception e) {
-            log.error("Resume delete failed: id={}", id, e);
+            log.error("Resume delete failed: id={}, memberId={}", id, memberId, e);
             return ResponseEntity.internalServerError().body("삭제 중 오류가 발생했습니다.");
         }
     }
 
     @DeleteMapping("/analysis/{id}")
-    public ResponseEntity<?> deleteAnalysisResult(@PathVariable Long id) {
+    public ResponseEntity<?> deleteAnalysisResult(
+            @PathVariable Long id,
+            @RequestParam(value = "memberId", required = false) Long memberId) {
+        if (memberId == null || memberId <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
+
         try {
-            analysisResultRepository.deleteById(id);
-            return ResponseEntity.ok().body("분석 기록 삭제 완료");
+            AnalysisResult analysisResult = analysisResultRepository.findById(id).orElse(null);
+            if (analysisResult == null) {
+                return ResponseEntity.status(404).body("삭제할 분석 기록을 찾을 수 없습니다.");
+            }
+
+            if (!Objects.equals(analysisResult.getMemberId(), memberId)) {
+                return ResponseEntity.status(403).body("삭제 권한이 없습니다.");
+            }
+
+            analysisResult.setGapDeleted(true);
+            analysisResultRepository.save(analysisResult);
+            return ResponseEntity.ok().body("분석 기록 숨김 처리 완료");
         } catch (Exception e) {
-            log.error("Analysis result delete failed: id={}", id, e);
+            log.error("Analysis result delete failed: id={}, memberId={}", id, memberId, e);
             return ResponseEntity.internalServerError().body("삭제 중 오류가 발생했습니다.");
         }
     }

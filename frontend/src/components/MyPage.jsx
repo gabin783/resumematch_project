@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../config/api';
 import './MyPage.css';
 
 const parseStoredList = (value) => {
@@ -93,6 +94,11 @@ const getJobSummary = (result) => {
   return result?.jobSummary || parsed.jobSummary || parsed.summary || '';
 };
 
+const isGapDeleted = (result) => result?.gapDeleted === true || result?.gapDeleted === 'true';
+
+const findAnalysisForResume = (analysisResults, resumeId) =>
+  analysisResults.find((result) => String(result?.resumeId || '') === String(resumeId || ''));
+
 const getRoadmapPayload = (roadmap) => parseJsonSafely(roadmap?.content) || {};
 
 const getRoadmapSkills = (roadmap) => {
@@ -115,6 +121,14 @@ const readFavoriteJobsFromStorage = (memberId) => {
   } catch {
     return [];
   }
+};
+
+const getDeleteFailureMessage = async (response) => {
+  const message = await response.text();
+
+  if (response.status === 403) return '삭제 권한이 없습니다.';
+  if (response.status === 404) return '삭제할 기록을 찾을 수 없습니다.';
+  return message || '삭제에 실패했습니다.';
 };
 
 const MyPage = () => {
@@ -144,7 +158,7 @@ const MyPage = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:8080/api/mypage/dashboard?memberId=${encodeURIComponent(memberId)}`
+          `${API_BASE_URL}/api/mypage/dashboard?memberId=${encodeURIComponent(memberId)}`
         );
 
         if (!response.ok) {
@@ -184,43 +198,56 @@ const MyPage = () => {
   }, [memberId]);
 
   const summaryItems = useMemo(
-    () => [
-      {
-        label: '이력서 분석',
-        value: resumes.length,
-        desc: '업로드한 이력서',
-      },
-      {
-        label: '매칭 분석',
-        value: analysisResults.length,
-        desc: '채용공고 비교 결과',
-      },
-      {
-        label: '학습 로드맵',
-        value: roadmaps.length,
-        desc: '생성된 학습 계획',
-      },
-      {
-        label: '즐겨찾기',
-        value: favoriteJobs.length,
-        desc: '저장한 추천 공고',
-      },
-    ],
-    [resumes.length, analysisResults.length, roadmaps.length, favoriteJobs.length]
+    () => {
+      const visibleAnalysisCount = analysisResults.filter((result) => !isGapDeleted(result)).length;
+
+      return [
+        {
+          label: '이력서 분석',
+          value: resumes.length,
+          desc: '업로드한 이력서',
+        },
+        {
+          label: '매칭 분석',
+          value: visibleAnalysisCount,
+          desc: '채용공고 비교 결과',
+        },
+        {
+          label: '학습 로드맵',
+          value: roadmaps.length,
+          desc: '생성된 학습 계획',
+        },
+        {
+          label: '즐겨찾기',
+          value: favoriteJobs.length,
+          desc: '저장한 추천 공고',
+        },
+      ];
+    },
+    [resumes.length, analysisResults, roadmaps.length, favoriteJobs.length]
+  );
+
+  const visibleAnalysisResults = useMemo(
+    () => analysisResults.filter((result) => !isGapDeleted(result)),
+    [analysisResults]
   );
 
   const handleDelete = async (id) => {
     if (!window.confirm('정말 이 기록을 삭제하시겠습니까?')) return;
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/resume/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resume/${id}?memberId=${encodeURIComponent(memberId)}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         setResumes(resumes.filter((resume) => resume.id !== id));
       } else {
-        alert('삭제에 실패했습니다.');
+        alert(await getDeleteFailureMessage(response));
       }
     } catch (error) {
       console.error('삭제 오류:', error);
@@ -229,16 +256,22 @@ const MyPage = () => {
 
   const handleDeleteAnalysis = async (id) => {
     if (!window.confirm('정말 이 분석 기록을 삭제하시겠습니까?')) return;
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/resume/analysis/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/resume/analysis/${id}?memberId=${encodeURIComponent(memberId)}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setAnalysisResults(analysisResults.filter((result) => result.id !== id));
+        setAnalysisResults(analysisResults.map((result) =>
+          String(result.id) === String(id) ? { ...result, gapDeleted: true } : result
+        ));
       } else {
-        alert('삭제에 실패했습니다.');
+        alert(await getDeleteFailureMessage(response));
       }
     } catch (error) {
       console.error('삭제 오류:', error);
@@ -247,16 +280,20 @@ const MyPage = () => {
 
   const handleDeleteRoadmap = async (id) => {
     if (!window.confirm('정말 이 로드맵을 삭제하시겠습니까?')) return;
+    if (!memberId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
 
     try {
-      const response = await fetch(`http://localhost:8080/api/roadmap/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/roadmap/${id}?memberId=${encodeURIComponent(memberId)}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         setRoadmaps(roadmaps.filter((map) => map.id !== id));
       } else {
-        alert('삭제에 실패했습니다.');
+        alert(await getDeleteFailureMessage(response));
       }
     } catch (error) {
       console.error('삭제 오류:', error);
@@ -394,7 +431,7 @@ const MyPage = () => {
 
           <div className="profile-progress-card">
             <span>내 분석 현황</span>
-            <strong>{analysisResults.length + roadmaps.length}건</strong>
+            <strong>{visibleAnalysisResults.length + roadmaps.length}건</strong>
             <p>매칭 분석과 학습 로드맵을 기반으로 취업 준비 현황을 관리하세요.</p>
           </div>
         </aside>
@@ -430,8 +467,8 @@ const MyPage = () => {
                 <p className="empty-message">아직 이력서 분석 기록이 없습니다.</p>
               ) : (
                 <div className="resume-history-list">
-                  {resumes.map((resume, index) => {
-                    const relatedAnalysis = analysisResults[index];
+                  {resumes.map((resume) => {
+                    const relatedAnalysis = findAnalysisForResume(analysisResults, resume.id);
                     const resumeSkills = getResumeSkills(resume);
                     const requirementSkills = getRequirementSkills(relatedAnalysis);
                     const jobKeywords = getJobKeywords(relatedAnalysis);
@@ -523,14 +560,14 @@ const MyPage = () => {
                 <div>
                   <h2>이력서 매칭 기록</h2>
                 </div>
-                <span>{analysisResults.length}건</span>
+                <span>{visibleAnalysisResults.length}건</span>
               </div>
 
-              {analysisResults.length === 0 ? (
+              {visibleAnalysisResults.length === 0 ? (
                 <p className="empty-message">아직 생성된 매칭 분석이 없습니다.</p>
               ) : (
                 <div className="match-card-list">
-                  {analysisResults.map((result) => {
+                  {visibleAnalysisResults.map((result) => {
                     const matchScore = getMatchScore(result);
                     const requirementSkills = getRequirementSkills(result);
                     const missingSkills = getMissingSkills(result);
