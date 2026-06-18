@@ -20,8 +20,6 @@ public class KakaoController {
     @PostMapping("/kakao")
     public ResponseEntity<?> kakaoLogin(@RequestBody Map<String, String> request) {
         String code = request.get("code");
-        System.out.println("프론트엔드에서 넘어온 인가 코드: " + code);
-
         try {
             // 1. 코드를 이용해 진짜 유저 정보를 받아오고 DB에 저장/조회
             Member member = kakaoService.kakaoLogin(code);

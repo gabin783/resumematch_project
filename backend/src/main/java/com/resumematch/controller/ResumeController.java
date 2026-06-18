@@ -83,7 +83,16 @@ public class ResumeController {
                 return ResponseEntity.badRequest().body("이력서 정보가 없습니다. 먼저 이력서를 업로드해주세요.");
             }
 
-            List<String> resumeSkillsList = Arrays.asList(latestResume.getSkills().split(","));
+            List<String> resumeSkillsList = buildResumeSkillsForGap(requestDto, latestResume);
+            log.info(
+                    "Gap match input: requestResumeSkills={}, requestTechnicalSkills={}, finalResumeSkills={}, requiredSkills={}, preferredSkills={}, targetJob={}",
+                    requestDto.getResumeSkills(),
+                    requestDto.getTechnicalSkills(),
+                    resumeSkillsList,
+                    requestDto.getRequiredSkills(),
+                    requestDto.getPreferredSkills(),
+                    requestDto.getTargetJob()
+            );
 
             ObjectMapper objectMapper = new ObjectMapper();
             GapMatchResponse response = gapLlmAnalyzeService.analyze(resumeSkillsList, requestDto);
@@ -123,6 +132,35 @@ public class ResumeController {
             log.warn("Failed to serialize list to JSON. Fallback to comma-separated text.", e);
             return String.join(",", values);
         }
+    }
+
+    private List<String> buildResumeSkillsForGap(GapMatchRequest requestDto, Resume latestResume) {
+        List<String> requestSkills = mergeSkillLists(requestDto.getResumeSkills(), requestDto.getTechnicalSkills());
+        if (!requestSkills.isEmpty()) {
+            return requestSkills;
+        }
+
+        if (latestResume.getSkills() == null || latestResume.getSkills().isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(latestResume.getSkills().split(","))
+                .map(String::trim)
+                .filter(skill -> !skill.isBlank())
+                .distinct()
+                .toList();
+    }
+
+    private List<String> mergeSkillLists(List<String> first, List<String> second) {
+        return java.util.stream.Stream.concat(
+                        first == null ? java.util.stream.Stream.empty() : first.stream(),
+                        second == null ? java.util.stream.Stream.empty() : second.stream()
+                )
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(skill -> !skill.isBlank())
+                .distinct()
+                .toList();
     }
 
     private String toJson(ObjectMapper objectMapper, GapMatchResponse response) {

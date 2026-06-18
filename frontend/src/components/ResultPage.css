@@ -164,13 +164,13 @@
 }
 
 .summary-label {
-  width: 44px;
+  min-width: 62px;
   min-height: 24px;
   display: inline-flex;
-  flex: 0 0 44px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  padding: 0 9px;
+  padding: 0 11px;
   border: 1px solid #d6def8;
   border-radius: 999px;
   background: #eef3ff;
@@ -191,7 +191,7 @@
   flex: 1;
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
   min-height: 62px;
   padding: 6px 0;
   border: 0;

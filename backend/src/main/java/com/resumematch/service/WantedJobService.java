@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.resumematch.entity.JobPosting;
 import com.resumematch.repository.JobPostingRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -14,6 +16,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Service
 public class WantedJobService {
+    private static final Logger log = LoggerFactory.getLogger(WantedJobService.class);
     private static final String SOURCE_WANTED = "WANTED";
 
     @Autowired
@@ -35,7 +38,6 @@ public class WantedJobService {
             JsonNode dataNode = rootNode.path("data");
 
             if (dataNode.isArray()) {
-                int saveCount = 0;
                 for (JsonNode jobNode : dataNode) {
                     String companyName = jobNode.path("company").path("name").asText();
                     String title = jobNode.path("position").asText();
@@ -57,12 +59,10 @@ public class WantedJobService {
                     jobPosting.setContent(companyName + "의 " + title + " 공고입니다. 원티드에서 수집된 채용공고입니다.");
 
                     jobPostingRepository.save(jobPosting);
-                    saveCount++;
                 }
-                System.out.println("Wanted jobs saved: " + saveCount);
             }
         } catch (Exception e) {
-            System.out.println("Wanted job fetch failed: " + e.getMessage());
+            log.warn("Wanted job fetch failed: {}", e.getMessage());
         }
     }
 }

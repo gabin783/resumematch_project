@@ -36,7 +36,6 @@ public class FileParsingService {
                  XWPFWordExtractor extractor = new XWPFWordExtractor(document)) {
 
                 String result = extractor.getText();
-                System.out.println("--> ✅ 워드 파일 텍스트 추출 성공!");
                 return result;
             }
         }

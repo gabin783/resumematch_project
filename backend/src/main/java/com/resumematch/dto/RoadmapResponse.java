@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RoadmapResponse {
+    private Long id;
     private String targetJob;
     private String summary;
     private List<RoadmapWeekDto> weeks;

@@ -6,6 +6,7 @@ import {
   Map,
   X,
 } from 'lucide-react';
+import { getMatchScoreLevel, roundMatchScore } from '../utils/matchScore';
 import './ResultPage.css';
 
 const defaultOwnedSkills = ['의사소통', '문제 해결', '데이터 분석', '협업', '기획'];
@@ -171,10 +172,10 @@ const getScore = (data) => {
 };
 
 const getScoreLabel = (score) => {
-  if (score >= 85) return '우수';
-  if (score >= 70) return '보통';
-  if (score >= 50) return '보완 필요';
-  return '집중 보완';
+  const level = getMatchScoreLevel(score);
+  if (level === 'high') return '높음';
+  if (level === 'medium') return '보통';
+  return '보완';
 };
 
 const normalizeSkillName = (skill) => String(skill || '').trim().toLowerCase();
@@ -184,13 +185,11 @@ const hasSkill = (skills, targetSkill) => {
   return skills.some((skill) => normalizeSkillName(skill) === normalizedTarget);
 };
 
-const getOwnedSkillStatus = (item) => {
-  if (item?.statusLabel) return item.statusLabel;
+const getOwnedSkillStatus = (item, matchedSkills = []) => {
+  if (hasSkill(matchedSkills, item?.name)) return '강점';
+  if (item?.statusLabel && item.statusLabel !== '강점') return item.statusLabel;
   if (!item?.hasScore) return '보유';
-  if (item.score >= 85) return '강점';
-  if (item.score >= 70) return '보유';
-  if (item.score >= 50) return '관련 경험';
-  return '관련 경험';
+  return '보유';
 };
 
 const getMissingSkillStatus = (item, requiredSkills = [], preferredSkills = []) => {
@@ -230,7 +229,7 @@ const buildStrengthSummary = (skills) => {
   const skillNames = formatSkillNames(skills);
 
   if (!skillNames) {
-    return '공고 요구 기술과 직접 일치하는 보유 기술은 확인되지 않습니다. 이력서에는 다른 직무 역량이 확인되지만, 해당 채용공고의 핵심 기술과의 직접 연관성은 낮습니다.';
+    return '공고의 핵심 요구 기술과 직접 일치하는 보유 기술은 확인되지 않습니다. 이력서에는 다른 직무 역량이 확인되지만, 해당 채용공고의 핵심 기술과의 직접 연관성은 낮습니다.';
   }
 
   return `${skillNames} 경험이 확인됩니다.`;
@@ -365,7 +364,7 @@ const ResultPage = () => {
       : buildProgressItems(needSkills, [30, 25, 35, 30, 45]);
     const ownedProgress = rawOwnedProgress.map((item) => ({
       ...item,
-      statusLabel: getOwnedSkillStatus(item),
+      statusLabel: getOwnedSkillStatus(item, matchedSkills),
     }));
     const missingProgress = rawMissingProgress.map((item) => ({
       ...item,
@@ -380,9 +379,10 @@ const ResultPage = () => {
       : missingProgress.map((item) => item.name);
     const strengthSummary = buildStrengthSummary(strengthSkills);
     const weaknessSummary = buildWeaknessSummary(weaknessSkills);
+    const hasDirectMatches = matchedSkills.length > 0;
 
     return {
-      score: getScore(sourceData),
+      score: roundMatchScore(getScore(sourceData)) ?? 70,
       targetJob: sourceData.targetJob || sourceData.jobTitle || sourceData.position || '데이터 분석가',
       analysis:
         sourceData.analysis ||
@@ -404,6 +404,8 @@ const ResultPage = () => {
       jobSummary,
       strengthSummary,
       weaknessSummary,
+      strengthLabel: hasDirectMatches ? '강점' : '판정',
+      weaknessLabel: hasDirectMatches ? '약점' : '보완 필요',
       hasJobAnalysis:
         jobRequiredSkills.length > 0 ||
         jobPreferredSkills.length > 0 ||
@@ -454,9 +456,14 @@ const ResultPage = () => {
     const isMissing = type === 'missing';
     const source = isMissing ? report.missingProgress : report.ownedProgress;
     const title = isMissing ? '부족 스킬 상세' : '보유 스킬 상세';
-    const buildOwnedEvidence = (item) => {
-      const evidence = item.evidence || `이력서에서 ${item.name} 관련 경험과 역량을 확인할 수 있습니다.`;
-      const reason = item.reason || `${item.name}은 ${report.targetJob} 직무와 연결되는 핵심 보유 역량입니다.`;
+    const matchedSkillNames = new Set(report.matchedSkills.map((skill) => normalizeSkillName(skill)));
+    const buildOwnedEvidence = (item, isDirectMatched) => {
+      const evidence = item.evidence || `이력서에서 ${item.name} 활용 경험이 확인됩니다.`;
+      const reason = item.reason || (
+        isDirectMatched
+          ? `${item.name}은 JD 요구사항과 직접 연결되는 보유 기술입니다.`
+          : `이력서에서 확인된 보유 역량입니다.`
+      );
 
       if (evidence.length >= 55 || evidence.includes('\n')) {
         return evidence;
@@ -480,15 +487,24 @@ const ResultPage = () => {
       title,
       description: isMissing
         ? '채용공고 요구사항 대비 보완이 필요한 역량입니다.'
-        : '이력서에서 확인된 강점 역량입니다.',
-      items: source.map((item) => ({
-        name: item.name,
-        statusLabel: item.statusLabel,
-        jdRequirement: `${report.targetJob} 공고에서 ${item.name} 관련 실무 활용 경험을 요구합니다.`,
-        resumeEvidence: isMissing
-          ? buildMissingEvidence(item)
-          : buildOwnedEvidence(item),
-      })),
+        : '이력서에서 확인된 보유 역량입니다.',
+      items: source.map((item) => {
+        const isDirectMatched = !isMissing && matchedSkillNames.has(normalizeSkillName(item.name));
+
+        return {
+          name: item.name,
+          statusLabel: item.statusLabel,
+          jdRequirementLabel: isMissing || isDirectMatched ? 'JD 요구사항' : 'JD 연관성',
+          jdRequirement: isMissing
+            ? `${report.targetJob} 공고에서 ${item.name} 역량을 요구합니다.`
+            : isDirectMatched
+              ? `해당 공고에서 ${item.name} 경험을 요구합니다.\nJD 요구사항과 직접 연결되는 보유 기술입니다.`
+              : `이 항목은 이력서에서 확인된 보유 역량입니다.\n다만 해당 채용공고의 핵심 요구 기술과 직접적인 연관성은 낮습니다.`,
+          resumeEvidence: isMissing
+            ? buildMissingEvidence(item)
+            : buildOwnedEvidence(item, isDirectMatched),
+        };
+      }),
     });
   };
 
@@ -521,11 +537,13 @@ const ResultPage = () => {
           />
           <div className="summary-box summary-box-compact">
             <div className="summary-section">
-              <span className="summary-label strength">강점</span>
+              <span className={`summary-label ${report.matchedSkills.length > 0 ? 'strength' : 'weakness'}`}>
+                {report.strengthLabel}
+              </span>
               <p>{report.strengthSummary}</p>
             </div>
             <div className="summary-section">
-              <span className="summary-label weakness">약점</span>
+              <span className="summary-label weakness">{report.weaknessLabel}</span>
               <p>{report.weaknessSummary}</p>
             </div>
           </div>
@@ -699,7 +717,7 @@ const ResultPage = () => {
 
                   <dl>
                     <div>
-                      <dt>JD 요구사항</dt>
+                      <dt>{item.jdRequirementLabel || 'JD 요구사항'}</dt>
                       <dd>{item.jdRequirement}</dd>
                     </div>
                     <div>
@@ -748,7 +766,7 @@ const ResultPage = () => {
                   <dd>{report.learningDirection}</dd>
                 </div>
                 <div>
-                  <dt>확인된 강점</dt>
+                  <dt>{report.matchedSkills.length > 0 ? '확인된 강점' : '보유 역량'}</dt>
                   <dd>{report.ownedProgress.map((skill) => skill.name).slice(0, 5).join(', ')}</dd>
                 </div>
                 <div>

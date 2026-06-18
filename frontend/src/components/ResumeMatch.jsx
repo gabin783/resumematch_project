@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL as BASE_API_URL } from '../config/api';
 import './ResumeMatch.css';
 
-const API_BASE_URL = 'http://localhost:8080/api/resume';
-const JOB_ANALYZE_API_URL = 'http://localhost:8080/api/job/analyze';
-const JOB_EXTRACT_URL_API_URL = 'http://localhost:8080/api/job/extract-url';
+const API_BASE_URL = `${BASE_API_URL}/api/resume`;
+const JOB_ANALYZE_API_URL = `${BASE_API_URL}/api/job/analyze`;
+const JOB_EXTRACT_URL_API_URL = `${BASE_API_URL}/api/job/extract-url`;
 const MAX_JD_LENGTH = 5000;
 const RESUME_SKILL_LIMIT = 8;
 const RESUME_SKILL_PRIORITY = [
@@ -76,6 +77,11 @@ const sampleExtractedJob = {
 };
 
 const toArray = (value) => (Array.isArray(value) ? value.filter(Boolean) : []);
+
+const getErrorLogDetails = (error) => ({
+  status: error?.response?.status,
+  message: error?.message,
+});
 
 const prioritizeResumeSkills = (skills) => {
   const priorityIndex = new Map(
@@ -218,7 +224,7 @@ const ResumeMatch = () => {
       setParsedResumeData(response.data);
       setIsResumeSkillsExpanded(false);
     } catch (error) {
-      console.error('이력서 파싱 오류:', error);
+      console.error('이력서 파싱 오류:', getErrorLogDetails(error));
       alert('이력서 파싱에 실패했습니다. 백엔드 서버 상태를 확인해주세요.');
       setResumeFile(null);
     } finally {
@@ -261,7 +267,7 @@ const ResumeMatch = () => {
         return;
       }
 
-      console.error('공고 URL 복사 오류:', error);
+      console.error('공고 URL 복사 오류:', getErrorLogDetails(error));
       setDemoCopyMessage('복사에 실패했습니다. URL을 직접 복사해주세요.');
     }
   };
@@ -321,7 +327,7 @@ const ResumeMatch = () => {
       const analysis = await requestJobAnalysis(extracted.content);
       applyJobAnalysis(analysis);
     } catch (error) {
-      console.error('채용공고 URL 분석 오류:', error);
+      console.error('채용공고 URL 분석 오류:', getErrorLogDetails(error));
       setJobAnalysisResult(null);
       setExtractedJobDescription('');
       setJobUrlExtractMessage('URL 본문을 불러오지 못했습니다. 직접 입력 탭에 공고 내용을 붙여넣어 주세요.');
@@ -334,10 +340,6 @@ const ResumeMatch = () => {
   const handleAnalyzeJobDescription = async () => {
     const originalDescription = jobDescription.trim();
 
-    // TODO: 분석 안정화 후 임시 디버그 로그는 제거합니다.
-    console.log('채용공고 분석 버튼 클릭');
-    console.log('분석 요청 jobDescription:', originalDescription);
-
     if (!originalDescription) {
       alert('채용공고 내용을 입력해주세요.');
       return;
@@ -348,12 +350,11 @@ const ResumeMatch = () => {
 
     try {
       const analysis = await requestJobAnalysis(originalDescription);
-      console.log('채용공고 분석 응답:', analysis);
       setExtractedJobDescription('');
       setJobUrlExtractMessage('');
       applyJobAnalysis(analysis);
     } catch (error) {
-      console.error('채용공고 분석 오류:', error);
+      console.error('채용공고 분석 오류:', getErrorLogDetails(error));
       applyJobAnalysis(sampleExtractedJob);
       alert('채용공고 분석에 실패했습니다. 직접 입력 내용을 확인해주세요.');
     } finally {
@@ -434,7 +435,7 @@ const ResumeMatch = () => {
         },
       });
     } catch (error) {
-      console.error('스킬 갭 분석 오류:', error);
+      console.error('스킬 갭 분석 오류:', getErrorLogDetails(error));
       alert('AI 분석에 실패했습니다. 백엔드 서버 상태와 콘솔 로그를 확인해주세요.');
     } finally {
       setIsAnalyzing(false);

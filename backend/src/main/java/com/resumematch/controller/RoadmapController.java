@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Objects;
+
 @RestController
 @RequestMapping("/api/roadmap")
 @RequiredArgsConstructor
@@ -48,7 +50,7 @@ public class RoadmapController {
                     .build();
 
             roadmapRepository.save(roadmapEntity);
-            System.out.println("✅ 학습 로드맵 DB 저장 완료! ID: " + roadmapEntity.getId());
+            roadmap.setId(roadmapEntity.getId());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -60,9 +62,24 @@ public class RoadmapController {
 
     // ✨ 3. 마이페이지에서 사용할 로드맵 삭제 API
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteRoadmap(@PathVariable("id") Long id) {
+    public ResponseEntity<?> deleteRoadmap(
+            @PathVariable("id") Long id,
+            @RequestParam(value = "memberId", required = false) Long memberId) {
+        if (memberId == null || memberId <= 0) {
+            return ResponseEntity.badRequest().body("memberId가 필요합니다.");
+        }
+
         try {
-            roadmapRepository.deleteById(id);
+            Roadmap roadmap = roadmapRepository.findById(id).orElse(null);
+            if (roadmap == null) {
+                return ResponseEntity.status(404).body("삭제할 로드맵을 찾을 수 없습니다.");
+            }
+
+            if (!Objects.equals(roadmap.getMemberId(), memberId)) {
+                return ResponseEntity.status(403).body("삭제 권한이 없습니다.");
+            }
+
+            roadmapRepository.delete(roadmap);
             return ResponseEntity.ok().body("로드맵 삭제 완료");
         } catch (Exception e) {
             e.printStackTrace();

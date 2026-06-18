@@ -5,13 +5,14 @@ import {
   Check,
   Clock,
   ExternalLink,
-  Map,
+  Map as MapIcon,
   Play,
   X,
 } from 'lucide-react';
+import { API_BASE_URL as BASE_API_URL } from '../config/api';
 import './RoadmapPage.css';
 
-const API_BASE_URL = 'http://localhost:8080/api/roadmap/recommend';
+const API_BASE_URL = `${BASE_API_URL}/api/roadmap/recommend`;
 
 const fallbackCourses = [
   {
@@ -131,7 +132,6 @@ const normalizeWeeks = (value) =>
       title: week.title || focusSkills[0] || `추천 학습 ${index + 1}`,
       summary: week.summary || week.goal || '',
       tags: focusSkills.length > 0 ? focusSkills : ['실습', '정리'],
-      time: week.time || '약 6시간',
       tasks: toArray(week.tasks),
       completionCriteria: toArray(week.completionCriteria),
       selfCheckItems: toArray(week.selfCheckItems),
@@ -169,7 +169,6 @@ const buildWeeks = (skills, courses) => {
           ? `${skill}를 중심으로 부족 역량을 보완하는 주차입니다.`
           : `${skill} 학습을 통해 직무 요구사항과 이력서 역량을 연결합니다.`,
       tags: course?.tags?.length ? course.tags : [skill, '실습', '정리'],
-      time: course?.time || '약 6시간',
     };
   });
 };
@@ -265,6 +264,24 @@ const getCurrentWeekNumber = (weeks, taskState) => {
   return incompleteWeek?.week || weeks[weeks.length - 1]?.week || 1;
 };
 
+const migrateSelfCheckStorage = (memberId, fromRoadmapId, toRoadmapId) => {
+  if (!fromRoadmapId || !toRoadmapId || String(fromRoadmapId) === String(toRoadmapId)) return;
+
+  const memberKey = memberId || 'guest';
+  const oldPrefix = `roadmap-self-check:${memberKey}:${fromRoadmapId}:week-`;
+  const newPrefix = `roadmap-self-check:${memberKey}:${toRoadmapId}:week-`;
+
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(oldPrefix))
+    .forEach((oldKey) => {
+      const newKey = oldKey.replace(oldPrefix, newPrefix);
+      if (localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, localStorage.getItem(oldKey));
+      }
+      localStorage.removeItem(oldKey);
+    });
+};
+
 const RoadmapPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -284,6 +301,7 @@ const RoadmapPage = () => {
   } = location.state || {};
   const memberId = stateMemberId || localStorage.getItem('memberId');
   const skillKeywords = useMemo(() => toArray(missingSkills), [missingSkills]);
+  const fallbackRoadmapStorageId = `new-${targetJob || 'roadmap'}-${skillKeywords.join('-') || 'default'}`;
 
   const [courses, setCourses] = useState([]);
   const [apiWeeks, setApiWeeks] = useState([]);
@@ -296,10 +314,12 @@ const RoadmapPage = () => {
   const [selfCheckItems, setSelfCheckItems] = useState(createSelfCheckItems);
   const [isSelfCheckModalOpen, setIsSelfCheckModalOpen] = useState(false);
   const [savedSelfCheckItems, setSavedSelfCheckItems] = useState(createSelfCheckItems);
+  const [generatedRoadmapId, setGeneratedRoadmapId] = useState(roadmapData?.id || null);
   const hasRequestedRoadmapRef = useRef(false);
 
   useEffect(() => {
     if (roadmapData) {
+      setGeneratedRoadmapId(roadmapData.id || null);
       try {
         const parsedCourses =
           typeof roadmapData.content === 'string'
@@ -365,6 +385,11 @@ const RoadmapPage = () => {
           analysis,
         });
 
+        if (response.data?.id) {
+          migrateSelfCheckStorage(memberId, fallbackRoadmapStorageId, response.data.id);
+          setGeneratedRoadmapId(response.data.id);
+        }
+
         if (response.data?.weeks) {
           const normalizedWeeks = normalizeWeeks(response.data.weeks);
           const initialTaskState = createInitialTaskState(normalizedWeeks);
@@ -389,7 +414,7 @@ const RoadmapPage = () => {
     };
 
     fetchRoadmap();
-  }, [analysis, jobSummary, learningDirection, matchedSkills, memberId, navigate, ownedSkills, preferredSkills, requiredSkills, roadmapData, skillKeywords, targetJob]);
+  }, [analysis, fallbackRoadmapStorageId, jobSummary, learningDirection, matchedSkills, memberId, navigate, ownedSkills, preferredSkills, requiredSkills, roadmapData, skillKeywords, targetJob]);
 
   const displayCourses = courses.length > 0 ? courses : fallbackCourses;
   const fallbackWeeks = useMemo(() => buildWeeks(skillKeywords, displayCourses), [skillKeywords, displayCourses]);
@@ -398,7 +423,7 @@ const RoadmapPage = () => {
   const selectedWeekData = weeks.find((week) => week.week === selectedWeek) || weeks[0];
   const selectedWeekIndex = weeks.findIndex((week) => week.week === selectedWeek);
   const selectedWeekNumber = selectedWeekData?.week || selectedWeek || selectedWeekIndex + 1;
-  const roadmapStorageId = roadmapData?.id || `new-${targetJob || 'roadmap'}-${skillKeywords.join('-') || 'default'}`;
+  const roadmapStorageId = roadmapData?.id || generatedRoadmapId || fallbackRoadmapStorageId;
   const selfCheckStorageKey = `roadmap-self-check:${memberId || 'guest'}:${roadmapStorageId}:week-${selectedWeekNumber}`;
   const selectedWeekTasks = buildWeekTasks(selectedWeekData);
   const selectedCompletionCriteria = selectedWeekData?.completionCriteria?.length
@@ -432,7 +457,6 @@ const RoadmapPage = () => {
       : toArray(selectedWeekData?.tags).length > 0
         ? toArray(selectedWeekData.tags)
         : skillKeywords;
-  const primarySkill = weekSkills[0] || selectedWeekData.title;
   const overviewSkills = weekSkills.slice(0, 2);
   const reasonText = '채용공고의 핵심 요구사항과 연결된 보완 항목입니다.';
   const taskItems = selectedWeekTasks.map((task) => {
@@ -474,20 +498,22 @@ const RoadmapPage = () => {
     if (!selectedWeekData || !selfCheckStorageKey) return;
 
     const weekSelfCheckItems = createSelfCheckItems(selectedWeekData.selfCheckItems);
+    const storedValue = localStorage.getItem(selfCheckStorageKey);
 
     try {
-      const storedItems = JSON.parse(localStorage.getItem(selfCheckStorageKey) || '[]');
+      const storedItems = JSON.parse(storedValue || '[]');
       const checkedById = new Map(
         storedItems.map((item) => [item.id, Boolean(item.checked)])
       );
-      const nextItems = weekSelfCheckItems.map((item) => ({
+      const restoredItems = weekSelfCheckItems.map((item) => ({
         ...item,
         checked: checkedById.get(item.id) || false,
       }));
 
-      setSavedSelfCheckItems(nextItems);
-      setSelfCheckItems(nextItems);
-    } catch {
+      setSavedSelfCheckItems(restoredItems);
+      setSelfCheckItems(restoredItems);
+    } catch (error) {
+      console.error('자가점검 상태 복원 실패:', error);
       setSavedSelfCheckItems(weekSelfCheckItems);
       setSelfCheckItems(weekSelfCheckItems);
     }
@@ -508,13 +534,15 @@ const RoadmapPage = () => {
   };
 
   const handleSelfCheckToggle = (itemId) => {
-    setSelfCheckItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? { ...item, checked: !item.checked }
-          : item
-      )
+    const nextItems = selfCheckItems.map((item) =>
+      item.id === itemId
+        ? { ...item, checked: !item.checked }
+        : item
     );
+
+    setSelfCheckItems(nextItems);
+    setSavedSelfCheckItems(nextItems);
+    localStorage.setItem(selfCheckStorageKey, JSON.stringify(nextItems));
   };
 
   const handleSelfCheckSave = () => {
@@ -539,7 +567,7 @@ const RoadmapPage = () => {
       <main className="roadmap-empty">
         <section className="roadmap-empty-card">
           <div className="roadmap-empty-visual" aria-hidden="true">
-            <Map size={86} />
+            <MapIcon size={86} />
           </div>
           <h2>아직 학습 로드맵이 없습니다</h2>
           <p>
@@ -857,19 +885,14 @@ const RoadmapPage = () => {
                 <article className="roadmap-detail-block">
                   <span>핵심 스킬</span>
                   <div className="roadmap-tags">
-                    <em>{primarySkill}</em>
-                    <em>AI 추천</em>
-                    {selectedWeekData.tags
-                      .filter((tag) => tag !== primarySkill)
-                      .map((tag) => (
-                        <em key={tag}>{tag}</em>
-                      ))}
+                    {overviewSkills.length > 0 ? (
+                      overviewSkills.map((skill) => (
+                        <em key={skill}>{skill}</em>
+                      ))
+                    ) : (
+                      <span>추천 스킬 없음</span>
+                    )}
                   </div>
-                </article>
-                <article className="roadmap-detail-block">
-                  <span>예상 소요 시간</span>
-                  <strong>{selectedWeekData.time}</strong>
-                  <p>추천 강의와 실습, 이력서 반영까지 포함한 예상 학습 시간입니다.</p>
                 </article>
                 <article className="roadmap-detail-block">
                   <span>필요한 이유</span>

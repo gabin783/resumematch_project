@@ -32,7 +32,6 @@ public class JobMatchingService {
         // ③ 채용 공고 스킬 가져오기 (🚨 현재는 테스트용 임시 스킬)
         String jobSkills = "Java, Spring, AWS, MySQL";
 
-        System.out.println("🔍 DB 연동 매칭 시작 - 유저 ID: " + memberId + ", 공고 ID: " + jobId);
 
         // ④ 하이브리드 엔진(Java + AI) 호출!
         return analyzeHybridMatch(mySkills, jobSkills);
@@ -62,19 +61,8 @@ public class JobMatchingService {
             matchRate = (int) (((double) matchedSkills.size() / requiredSkills.size()) * 100);
         }
 
-        System.out.println("========================================");
-        System.out.println("🤖 [Java 고속 분석 연산 완료]");
-        System.out.println("   - 매칭률: " + matchRate + "%");
-        System.out.println("   - 보유한 스킬: " + matchedSkills);
-        System.out.println("   - 부족한 스킬: " + missingSkills);
-        System.out.println("========================================");
-
-        System.out.println("⏳ 로컬 AI (gemma-kr)가 피드백을 작성 중입니다...");
         // OllamaAiService에서 임시(Mock) 응답을 주도록 설정해둔 상태입니다!
         String aiFeedback = ollamaAiService.generateHybridFeedback(matchRate, matchedSkills, missingSkills);
-
-        System.out.println("✨ [AI 피드백 도착] \n" + aiFeedback);
-        System.out.println("========================================");
 
         // 연산된 모든 데이터를 DTO에 예쁘게 포장해서 컨트롤러로 전달
         return new JobMatchResponse(matchRate, matchedSkills, missingSkills, aiFeedback);

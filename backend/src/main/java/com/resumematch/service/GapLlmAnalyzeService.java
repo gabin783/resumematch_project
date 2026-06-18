@@ -65,24 +65,21 @@ public class GapLlmAnalyzeService {
             return response;
         } catch (RestClientResponseException e) {
             log.error(
-                    "Gap commercial LLM API request failed: status={}, body={}",
-                    e.getStatusCode(),
-                    truncate(e.getResponseBodyAsString(), 800),
-                    e
+                    "Gap commercial LLM API request failed: status={}",
+                    e.getStatusCode()
             );
             return fallbackAnalyze(resumeSkills, request, "commercial LLM API request failed");
         } catch (Exception e) {
-            log.error("Gap LLM analyze failed: {}", e.getMessage(), e);
+            log.error("Gap LLM analyze failed: {}", e.getMessage());
             return fallbackAnalyze(resumeSkills, request, "gap LLM analyze failed");
         }
     }
 
     private String callCommercialLlm(List<String> resumeSkills, GapMatchRequest request) throws Exception {
         log.info(
-                "Calling gap commercial LLM API: model={}, baseUrl={}, apiKey={}",
+                "Calling gap commercial LLM API: model={}, baseUrl={}",
                 model,
-                baseUrl,
-                maskApiKey(apiKey)
+                baseUrl
         );
 
         RestTemplate restTemplate = new RestTemplate();
@@ -218,6 +215,9 @@ public class GapLlmAnalyzeService {
                 - partialSkills는 절반 정도만 반영하세요.
                 - preferredSkills는 보너스 정도로만 반영하세요.
                 - missingSkills가 많으면 점수를 낮게 주세요.
+                - requiredSkills와 preferredSkills 중 resumeSkills와 직접 일치하는 기술이 하나도 없으면 matchScore는 10점 이하로 주세요.
+                - 직접 일치하는 개발 기술이 없고 공통 업무 역량만 관련되어 있으면 matchScore는 20점 이하로 주세요.
+                - HR/운영/기획 이력서로 개발자 JD를 분석하는 등 직무 불일치가 크면 analysis에 직무 연관성이 낮다고 명시하세요.
                 - 프론트엔드 이력서로 백엔드 JD를 분석하면 30~50점대가 자연스럽습니다.
                 - 백엔드 이력서로 백엔드 JD를 분석하면 65~85점대가 자연스럽습니다.
 
@@ -259,7 +259,7 @@ public class GapLlmAnalyzeService {
         try {
             parsed = objectMapper.readValue(json, GapMatchResponse.class);
         } catch (Exception e) {
-            log.error("Failed to parse gap LLM JSON response. rawResponse={}", truncate(content, 1000), e);
+            log.error("Failed to parse gap LLM JSON response");
             throw e;
         }
 
@@ -283,7 +283,7 @@ public class GapLlmAnalyzeService {
             GapMatchResponse parsed = parseFallbackResponse(jsonResponse);
             return normalizeResponse(parsed, resumeSkills, request);
         } catch (Exception e) {
-            log.error("Gap fallback analyze failed: {}", e.getMessage(), e);
+            log.error("Gap fallback analyze failed: {}", e.getMessage());
             return normalizeResponse(
                     GapMatchResponse.builder()
                             .matchScore(50)
@@ -302,28 +302,562 @@ public class GapLlmAnalyzeService {
     }
 
     private GapMatchResponse normalizeResponse(GapMatchResponse response, List<String> resumeSkills, GapMatchRequest request) {
-        List<SkillScoreDto> ownedSkills = normalizeSkillScores(response.getOwnedSkills());
-        if (ownedSkills.size() < 5) {
-            ownedSkills = mergeOwnedSkills(ownedSkills, resumeSkills);
-        }
+        List<String> sourceResumeSkills = mergeSourceResumeSkills(resumeSkills, request);
+        List<SkillScoreDto> ownedSkills = buildDeterministicOwnedSkills(sourceResumeSkills);
+        List<String> requiredSkills = preferredRequestSkills(request.getRequiredSkills(), response.getRequiredSkills());
+        List<String> preferredSkills = preferredRequestSkills(request.getPreferredSkills(), response.getPreferredSkills());
+        List<SkillScoreDto> matchedSkills = buildDeterministicMatchedSkills(sourceResumeSkills, requiredSkills, preferredSkills);
+        List<SkillScoreDto> partialSkills = buildDeterministicPartialSkills(sourceResumeSkills, requiredSkills, preferredSkills, matchedSkills);
+        List<SkillScoreDto> missingSkills = buildDeterministicMissingSkills(sourceResumeSkills, requiredSkills, preferredSkills, matchedSkills, partialSkills);
+        int recalculatedScore = calculateFinalMatchScore(matchedSkills, partialSkills, missingSkills, requiredSkills, preferredSkills);
+        int adjustedScore = adjustScoreForNoDirectMatches(recalculatedScore, matchedSkills, partialSkills, requiredSkills, preferredSkills);
+        String finalAnalysis = buildFinalAnalysisSummary(adjustedScore, matchedSkills, partialSkills, missingSkills);
+        String finalLearningDirection = buildFinalLearningDirection(matchedSkills, partialSkills, missingSkills, requiredSkills);
 
-        List<SkillScoreDto> missingSkills = normalizeMissingSkills(response.getMissingSkills());
+        log.info(
+                "Gap deterministic result: resumeSkills={}, requiredSkills={}, preferredSkills={}, matchedSkills={}, partialSkills={}, missingSkills={}, matchScore={}",
+                sourceResumeSkills.size(),
+                requiredSkills.size(),
+                preferredSkills.size(),
+                matchedSkills.size(),
+                partialSkills.size(),
+                missingSkills.size(),
+                adjustedScore
+        );
 
         return GapMatchResponse.builder()
-                .matchScore(clampScore(response.getMatchScore() > 0 ? response.getMatchScore() : estimateScore(response)))
+                .matchScore(adjustedScore)
                 .targetJob(defaultText(response.getTargetJob(), defaultText(request.getTargetJob(), "분석된 직무")))
-                .analysis(defaultText(response.getAnalysis(), "이력서와 채용공고를 비교한 스킬 갭 분석 결과입니다."))
-                .learningDirection(normalizeLearningDirection(response.getLearningDirection(), request, missingSkills))
+                .analysis(defaultText(finalAnalysis, defaultText(response.getAnalysis(), "이력서와 채용공고를 비교한 스킬 갭 분석 결과입니다.")))
+                .learningDirection(finalLearningDirection)
                 .ownedSkills(ownedSkills)
-                .matchedSkills(normalizeSkillScores(response.getMatchedSkills()))
-                .partialSkills(normalizeSkillScores(response.getPartialSkills()))
+                .matchedSkills(matchedSkills)
+                .partialSkills(partialSkills)
                 .missingSkills(missingSkills)
-                .requiredSkills(defaultList(response.getRequiredSkills()).isEmpty() ? defaultList(request.getRequiredSkills()) : defaultList(response.getRequiredSkills()))
-                .preferredSkills(defaultList(response.getPreferredSkills()).isEmpty() ? defaultList(request.getPreferredSkills()) : defaultList(response.getPreferredSkills()))
+                .requiredSkills(requiredSkills)
+                .preferredSkills(preferredSkills)
                 .mainTasks(defaultList(response.getMainTasks()).isEmpty() ? defaultList(request.getMainTasks()) : defaultList(response.getMainTasks()))
                 .jobKeywords(defaultList(response.getJobKeywords()).isEmpty() ? defaultList(request.getKeywords()) : defaultList(response.getJobKeywords()))
                 .jobSummary(defaultText(response.getJobSummary(), defaultText(request.getSummary(), "")))
                 .build();
+    }
+
+    private List<SkillScoreDto> buildDeterministicOwnedSkills(List<String> resumeSkills) {
+        return defaultList(resumeSkills).stream()
+                .filter(skill -> skill != null && !skill.isBlank())
+                .map(skill -> skillScore(
+                        skill.trim(),
+                        80,
+                        "이력서에 명시된 보유 기술입니다.",
+                        "원본 이력서 스킬 목록에서 확인되었습니다.",
+                        "low"
+                ))
+                .toList();
+    }
+
+    private List<SkillScoreDto> buildDeterministicMatchedSkills(
+            List<String> resumeSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills
+    ) {
+        Map<String, String> resumeSkillNames = skillNameMap(resumeSkills);
+        Set<String> requiredKeys = defaultList(requiredSkills).stream()
+                .map(this::normalizeSkillKey)
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+        Map<String, SkillScoreDto> matched = new LinkedHashMap<>();
+
+        List<String> jobSkills = new java.util.ArrayList<>();
+        jobSkills.addAll(defaultList(requiredSkills));
+        jobSkills.addAll(defaultList(preferredSkills));
+
+        for (String jobSkill : jobSkills) {
+            String key = normalizeSkillKey(jobSkill);
+            String resumeSkill = resumeSkillNames.get(key);
+            if (key.isBlank() || resumeSkill == null || matched.containsKey(key)) {
+                continue;
+            }
+
+            boolean required = requiredKeys.contains(key);
+            matched.put(key, skillScore(
+                    resumeSkill,
+                    required ? 90 : 85,
+                    "이력서와 채용공고에 모두 명시된 기술입니다.",
+                    "원본 이력서 스킬과 JD 요구사항이 직접 일치합니다.",
+                    required ? "high" : "medium"
+            ));
+        }
+
+        return List.copyOf(matched.values());
+    }
+
+    private List<SkillScoreDto> buildDeterministicPartialSkills(
+            List<String> resumeSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills,
+            List<SkillScoreDto> matchedSkills
+    ) {
+        Map<String, String> resumeSkillNames = skillNameMap(resumeSkills);
+        Set<String> matchedKeys = skillKeySet(matchedSkills);
+        Map<String, SkillScoreDto> partial = new LinkedHashMap<>();
+
+        List<String> jobSkills = new java.util.ArrayList<>();
+        jobSkills.addAll(defaultList(requiredSkills));
+        jobSkills.addAll(defaultList(preferredSkills));
+
+        for (String jobSkill : jobSkills) {
+            String key = normalizeSkillKey(jobSkill);
+            if (key.isBlank() || matchedKeys.contains(key) || partial.containsKey(key)) {
+                continue;
+            }
+
+            String relatedResumeSkill = findRelatedResumeSkill(key, resumeSkillNames);
+            if (relatedResumeSkill == null) {
+                continue;
+            }
+
+            partial.put(key, skillScore(
+                    jobSkill.trim(),
+                    65,
+                    "이력서에 JD 요구 기술과 관련된 세부 기술이 확인됩니다.",
+                    relatedResumeSkill + " 보유 스킬이 " + jobSkill.trim() + " 요구사항과 관련됩니다.",
+                    "medium"
+            ));
+        }
+
+        return List.copyOf(partial.values());
+    }
+
+    private List<SkillScoreDto> buildDeterministicMissingSkills(
+            List<String> resumeSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills,
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills
+    ) {
+        Set<String> resumeKeys = skillNameMap(resumeSkills).keySet();
+        Set<String> matchedKeys = skillKeySet(matchedSkills);
+        Set<String> partialKeys = skillKeySet(partialSkills);
+        Map<String, SkillScoreDto> missing = new LinkedHashMap<>();
+
+        for (String skill : defaultList(requiredSkills)) {
+            String key = normalizeSkillKey(skill);
+            if (isResolvedSkill(key, resumeKeys, matchedKeys, partialKeys)) {
+                continue;
+            }
+            missing.putIfAbsent(key, skillScore(
+                    skill.trim(),
+                    30,
+                    "채용공고의 필수 기술이지만 이력서 원본 스킬에서 확인되지 않습니다.",
+                    "원본 이력서 스킬 목록과 직접 일치하거나 관련된 보유 기술이 확인되지 않았습니다.",
+                    "high"
+            ));
+        }
+
+        for (String skill : defaultList(preferredSkills)) {
+            String key = normalizeSkillKey(skill);
+            if (isResolvedSkill(key, resumeKeys, matchedKeys, partialKeys)) {
+                continue;
+            }
+            missing.putIfAbsent(key, skillScore(
+                    skill.trim(),
+                    45,
+                    "채용공고의 우대 기술이지만 이력서 원본 스킬에서 확인되지 않습니다.",
+                    "원본 이력서 스킬 목록과 직접 일치하거나 관련된 보유 기술이 확인되지 않았습니다.",
+                    "medium"
+            ));
+        }
+
+        return List.copyOf(missing.values());
+    }
+
+    private boolean isResolvedSkill(String key, Set<String> resumeKeys, Set<String> matchedKeys, Set<String> partialKeys) {
+        return key.isBlank() || resumeKeys.contains(key) || matchedKeys.contains(key) || partialKeys.contains(key);
+    }
+
+    private Map<String, String> skillNameMap(List<String> skills) {
+        Map<String, String> skillNames = new LinkedHashMap<>();
+        for (String skillName : defaultList(skills)) {
+            putSkillName(skillNames, skillName);
+        }
+        return skillNames;
+    }
+
+    private Set<String> skillKeySet(List<SkillScoreDto> skills) {
+        return defaultList(skills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+    }
+
+    private List<SkillScoreDto> supplementDirectMatchedSkills(
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> ownedSkills,
+            List<String> resumeSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills
+    ) {
+        Map<String, String> resumeSkillNames = new LinkedHashMap<>();
+        for (String skillName : defaultList(resumeSkills)) {
+            putSkillName(resumeSkillNames, skillName);
+        }
+        for (SkillScoreDto skill : defaultList(ownedSkills)) {
+            putSkillName(resumeSkillNames, skill.getName());
+        }
+
+        Map<String, SkillScoreDto> merged = new LinkedHashMap<>();
+        for (SkillScoreDto skill : defaultList(matchedSkills)) {
+            merged.put(normalizeSkillKey(skill.getName()), skill);
+        }
+
+        Set<String> requiredKeys = defaultList(requiredSkills).stream()
+                .map(this::normalizeSkillKey)
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+
+        List<String> jobSkills = new java.util.ArrayList<>();
+        jobSkills.addAll(defaultList(requiredSkills));
+        jobSkills.addAll(defaultList(preferredSkills));
+
+        for (String jobSkill : jobSkills) {
+            String key = normalizeSkillKey(jobSkill);
+            String resumeSkill = resumeSkillNames.get(key);
+            if (key.isBlank() || resumeSkill == null || merged.containsKey(key)) {
+                continue;
+            }
+
+            boolean required = requiredKeys.contains(key);
+            merged.put(key, skillScore(
+                    resumeSkill,
+                    required ? 90 : 85,
+                    "이력서와 채용공고에 모두 명시된 기술입니다.",
+                    "이력서 보유 스킬과 JD 요구사항이 직접 일치합니다.",
+                    required ? "high" : "medium"
+            ));
+        }
+
+        return List.copyOf(merged.values());
+    }
+
+    private List<SkillScoreDto> supplementRelatedPartialSkills(
+            List<SkillScoreDto> partialSkills,
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> ownedSkills,
+            List<String> resumeSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills
+    ) {
+        Map<String, String> resumeSkillNames = new LinkedHashMap<>();
+        for (String skillName : defaultList(resumeSkills)) {
+            putSkillName(resumeSkillNames, skillName);
+        }
+        for (SkillScoreDto skill : defaultList(ownedSkills)) {
+            putSkillName(resumeSkillNames, skill.getName());
+        }
+
+        Set<String> matchedKeys = defaultList(matchedSkills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+
+        Map<String, SkillScoreDto> merged = new LinkedHashMap<>();
+        for (SkillScoreDto skill : defaultList(partialSkills)) {
+            merged.put(normalizeSkillKey(skill.getName()), skill);
+        }
+
+        List<String> jobSkills = new java.util.ArrayList<>();
+        jobSkills.addAll(defaultList(requiredSkills));
+        jobSkills.addAll(defaultList(preferredSkills));
+
+        for (String jobSkill : jobSkills) {
+            String jobKey = normalizeSkillKey(jobSkill);
+            if (jobKey.isBlank() || matchedKeys.contains(jobKey) || merged.containsKey(jobKey)) {
+                continue;
+            }
+
+            String relatedResumeSkill = findRelatedResumeSkill(jobKey, resumeSkillNames);
+            if (relatedResumeSkill == null) {
+                continue;
+            }
+
+            merged.put(jobKey, skillScore(
+                    jobSkill.trim(),
+                    65,
+                    "이력서에 JD 요구 기술과 관련된 세부 기술이 확인됩니다.",
+                    relatedResumeSkill + " 보유 스킬이 " + jobSkill.trim() + " 요구사항과 관련됩니다.",
+                    "medium"
+            ));
+        }
+
+        return List.copyOf(merged.values());
+    }
+
+    private void putSkillName(Map<String, String> skillNames, String skillName) {
+        String key = normalizeSkillKey(skillName);
+        if (!key.isBlank()) {
+            skillNames.putIfAbsent(key, skillName.trim());
+        }
+    }
+
+    private List<SkillScoreDto> removeMatchedItems(List<SkillScoreDto> values, List<SkillScoreDto> matchedSkills) {
+        Set<String> matchedKeys = defaultList(matchedSkills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+
+        if (matchedKeys.isEmpty()) {
+            return defaultList(values);
+        }
+
+        return defaultList(values).stream()
+                .filter(skill -> !matchedKeys.contains(normalizeSkillKey(skill.getName())))
+                .toList();
+    }
+
+    private List<SkillScoreDto> removeResolvedItems(
+            List<SkillScoreDto> values,
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills,
+            List<String> resumeSkills
+    ) {
+        List<SkillScoreDto> resolved = new java.util.ArrayList<>();
+        resolved.addAll(defaultList(matchedSkills));
+        resolved.addAll(defaultList(partialSkills));
+        for (String skillName : defaultList(resumeSkills)) {
+            if (skillName != null && !skillName.isBlank()) {
+                resolved.add(skillScore(skillName, 75, "이력서에 명시된 보유 기술입니다.", "resumeSkills", "low"));
+            }
+        }
+        return removeMatchedItems(values, resolved);
+    }
+
+    private int calculateFinalMatchScore(
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills,
+            List<SkillScoreDto> missingSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills
+    ) {
+        Set<String> matchedKeys = defaultList(matchedSkills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+        Set<String> partialKeys = defaultList(partialSkills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+
+        double requiredScore = scoreSkillGroup(requiredSkills, matchedKeys, partialKeys, 75);
+        double preferredScore = scoreSkillGroup(preferredSkills, matchedKeys, partialKeys, 25);
+        int estimatedScore = estimateScore(GapMatchResponse.builder()
+                .matchedSkills(matchedSkills)
+                .partialSkills(partialSkills)
+                .missingSkills(missingSkills)
+                .build());
+
+        return clampScore((int) Math.round(Math.max(estimatedScore, requiredScore + preferredScore)));
+    }
+
+    private double scoreSkillGroup(List<String> jobSkills, Set<String> matchedKeys, Set<String> partialKeys, int weight) {
+        List<String> normalized = defaultList(jobSkills).stream()
+                .map(this::normalizeSkillKey)
+                .filter(key -> !key.isBlank())
+                .toList();
+
+        if (normalized.isEmpty()) {
+            return 0;
+        }
+
+        double score = 0;
+        for (String key : normalized) {
+            if (matchedKeys.contains(key)) {
+                score += 1;
+            } else if (partialKeys.contains(key)) {
+                score += 0.5;
+            }
+        }
+
+        return (score / normalized.size()) * weight;
+    }
+
+    private String buildFinalAnalysisSummary(
+            int matchScore,
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills,
+            List<SkillScoreDto> missingSkills
+    ) {
+        StringBuilder summary = new StringBuilder();
+        List<String> matchedNames = skillNames(matchedSkills, 5);
+        List<String> missingNames = skillNames(missingSkills, 5);
+        List<String> partialNames = skillNames(partialSkills, 3);
+
+        if (matchedNames.isEmpty()) {
+            summary.append("공고의 핵심 요구 기술과 직접 일치하는 보유 기술은 확인되지 않습니다. ");
+            summary.append("이력서에는 다른 직무 역량이 확인되지만, 해당 채용공고의 핵심 기술과의 직접 연관성은 낮습니다.");
+        } else {
+            summary.append(String.join(", ", matchedNames));
+            summary.append(" 등 공고 요구 기술과 일치하는 경험이 확인됩니다. ");
+
+            if (matchScore >= 70) {
+                summary.append("일부 보완이 필요하지만 전반적인 직무 적합도는 보통 이상입니다.");
+            } else if (matchScore >= 40) {
+                summary.append("일부 기술은 일치하지만 핵심 기술 보완이 필요합니다.");
+            } else {
+                summary.append("직접 일치하는 기술이 적어 직무 연관성이 낮습니다.");
+            }
+        }
+
+        if (!missingNames.isEmpty()) {
+            summary.append(" 다만 ");
+            summary.append(String.join(", ", missingNames));
+            summary.append(" 등은 추가 보완이 필요합니다.");
+        } else if (!partialNames.isEmpty()) {
+            summary.append(" ");
+            summary.append(String.join(", ", partialNames));
+            summary.append(" 등은 관련 경험을 더 구체적인 성과나 프로젝트 근거로 보강하면 좋습니다.");
+        }
+
+        return summary.toString();
+    }
+
+    private List<String> skillNames(List<SkillScoreDto> skills, int limit) {
+        return defaultList(skills).stream()
+                .map(SkillScoreDto::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .limit(limit)
+                .toList();
+    }
+
+    private String buildFinalLearningDirection(
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills,
+            List<SkillScoreDto> missingSkills,
+            List<String> requiredSkills
+    ) {
+        Set<String> matchedKeys = defaultList(matchedSkills).stream()
+                .map(skill -> normalizeSkillKey(skill.getName()))
+                .filter(key -> !key.isBlank())
+                .collect(Collectors.toSet());
+        List<String> missingNames = skillNamesExcluding(missingSkills, matchedKeys, 10);
+        List<String> partialNames = skillNamesExcluding(partialSkills, matchedKeys, 5);
+        List<String> lines = new java.util.ArrayList<>();
+
+        if (matchedKeys.isEmpty()) {
+            return buildFoundationLearningDirection(missingNames, requiredSkills);
+        }
+
+        if (hasSkillKey(missingNames, "Kotlin")) {
+            addLearningLine(lines, "Kotlin 기본 문법과 Java와의 차이를 학습하세요.");
+        }
+
+        if (hasAnySkillKey(missingNames, List.of("Redis", "Kafka"))) {
+            addLearningLine(lines, "Redis 또는 Kafka를 활용한 캐싱/메시징 실습을 진행하세요.");
+        }
+
+        if (hasAnySkillKey(missingNames, List.of("Kubernetes", "ArgoCD", "GitHub Actions", "Terraform"))) {
+            addLearningLine(lines, "Kubernetes, ArgoCD, GitHub Actions 등 배포 자동화 흐름을 간단한 예제로 실습하세요.");
+        }
+
+        for (String skill : missingNames) {
+            if (lines.size() >= 3) {
+                break;
+            }
+            if (hasAnySkillKey(List.of(skill), List.of("Kotlin", "Redis", "Kafka", "Kubernetes", "ArgoCD", "GitHub Actions", "Terraform"))) {
+                continue;
+            }
+            addLearningLine(lines, skill + "의 핵심 개념과 기본 사용법을 작은 예제로 학습하세요.");
+        }
+
+        for (String skill : partialNames) {
+            if (lines.size() >= 3) {
+                break;
+            }
+            addLearningLine(lines, skill + " 관련 경험을 프로젝트 성과나 운영 시나리오로 더 구체화하세요.");
+        }
+
+        while (lines.size() < 3) {
+            addLearningLine(lines, "부족한 JD 요구 기술을 하나씩 선택해 작은 실습 결과물로 정리하세요.");
+        }
+
+        return String.join("\n", lines.subList(0, 3));
+    }
+
+    private String buildFoundationLearningDirection(List<String> missingNames, List<String> requiredSkills) {
+        List<String> candidates = missingNames.isEmpty() ? defaultList(requiredSkills) : missingNames;
+        List<String> lines = new java.util.ArrayList<>();
+
+        if (hasAnySkillKey(candidates, List.of("Java", "Spring Boot"))) {
+            addLearningLine(lines, "Java와 Spring Boot 기본 문법을 먼저 학습하세요.");
+        }
+        if (hasAnySkillKey(candidates, List.of("React", "TypeScript"))) {
+            addLearningLine(lines, "React와 TypeScript 기반 화면 구현 기초를 실습하세요.");
+        }
+        if (hasAnySkillKey(candidates, List.of("MySQL", "DB", "SQL", "REST API"))) {
+            addLearningLine(lines, "MySQL과 REST API를 연결한 간단한 CRUD 프로젝트를 만들어 보세요.");
+        }
+
+        for (String skill : candidates) {
+            if (lines.size() >= 3) {
+                break;
+            }
+            addLearningLine(lines, skill + "의 기본 개념을 학습하고 간단한 실습 예제를 완성하세요.");
+        }
+
+        while (lines.size() < 3) {
+            addLearningLine(lines, "개발 직무의 핵심 기술을 기초 문법, 웹 API, 데이터베이스 순서로 학습하세요.");
+        }
+
+        return String.join("\n", lines.subList(0, 3));
+    }
+
+    private List<String> skillNamesExcluding(List<SkillScoreDto> skills, Set<String> excludedKeys, int limit) {
+        return defaultList(skills).stream()
+                .map(SkillScoreDto::getName)
+                .filter(name -> name != null && !name.isBlank())
+                .filter(name -> !excludedKeys.contains(normalizeSkillKey(name)))
+                .limit(limit)
+                .toList();
+    }
+
+    private void addLearningLine(List<String> lines, String line) {
+        if (!lines.contains(line)) {
+            lines.add(line);
+        }
+    }
+
+    private boolean hasSkillKey(List<String> skills, String target) {
+        String targetKey = normalizeSkillKey(target);
+        return defaultList(skills).stream()
+                .map(this::normalizeSkillKey)
+                .anyMatch(targetKey::equals);
+    }
+
+    private boolean hasAnySkillKey(List<String> skills, List<String> targets) {
+        return defaultList(targets).stream().anyMatch(target -> hasSkillKey(skills, target));
+    }
+
+    private int adjustScoreForNoDirectMatches(
+            int rawScore,
+            List<SkillScoreDto> matchedSkills,
+            List<SkillScoreDto> partialSkills,
+            List<String> requiredSkills,
+            List<String> preferredSkills
+    ) {
+        int score = clampScore(rawScore);
+        if (!defaultList(matchedSkills).isEmpty()) {
+            return score;
+        }
+
+        boolean hasJobSkillRequirements = !defaultList(requiredSkills).isEmpty() || !defaultList(preferredSkills).isEmpty();
+        if (!hasJobSkillRequirements) {
+            return Math.min(score, 20);
+        }
+
+        if (defaultList(partialSkills).isEmpty()) {
+            return Math.min(score, 10);
+        }
+
+        return Math.min(score, 20);
     }
 
     private String normalizeLearningDirection(String value, GapMatchRequest request, List<SkillScoreDto> missingSkills) {
@@ -433,7 +967,7 @@ public class GapLlmAnalyzeService {
                 ))
                 .collect(Collectors.collectingAndThen(
                         Collectors.toMap(
-                                item -> item.getName().toLowerCase(),
+                                item -> normalizeSkillKey(item.getName()),
                                 item -> item,
                                 (first, ignored) -> first,
                                 java.util.LinkedHashMap::new
@@ -480,12 +1014,24 @@ public class GapLlmAnalyzeService {
                 .toList();
     }
 
+    private List<String> mergeSourceResumeSkills(List<String> resumeSkills, GapMatchRequest request) {
+        java.util.LinkedHashMap<String, String> merged = new java.util.LinkedHashMap<>();
+
+        for (String skillName : defaultList(resumeSkills)) {
+            putSkillName(merged, skillName);
+        }
+        for (String skillName : defaultList(request.getResumeSkills())) {
+            putSkillName(merged, skillName);
+        }
+        for (String skillName : defaultList(request.getTechnicalSkills())) {
+            putSkillName(merged, skillName);
+        }
+
+        return List.copyOf(merged.values());
+    }
+
     private List<SkillScoreDto> mergeOwnedSkills(List<SkillScoreDto> ownedSkills, List<String> resumeSkills) {
         java.util.LinkedHashMap<String, SkillScoreDto> merged = new java.util.LinkedHashMap<>();
-
-        for (SkillScoreDto skill : ownedSkills) {
-            merged.put(skill.getName().toLowerCase(), skill);
-        }
 
         for (String skillName : defaultList(resumeSkills)) {
             if (skillName == null || skillName.isBlank()) {
@@ -493,16 +1039,20 @@ public class GapLlmAnalyzeService {
             }
 
             merged.putIfAbsent(
-                    skillName.toLowerCase(),
+                    normalizeSkillKey(skillName),
                     skillScore(skillName, 75, "이력서에서 확인된 기술 스택입니다.", "resumeSkills", "low")
             );
 
-            if (merged.size() >= 5) {
-                break;
+        }
+
+        for (SkillScoreDto skill : ownedSkills) {
+            String key = normalizeSkillKey(skill.getName());
+            if (!key.isBlank()) {
+                merged.putIfAbsent(key, skill);
             }
         }
 
-        return merged.values().stream().limit(8).toList();
+        return List.copyOf(merged.values());
     }
 
     private int clampMissingScore(int score) {
@@ -551,6 +1101,32 @@ public class GapLlmAnalyzeService {
         return values == null ? List.of() : values;
     }
 
+    private List<String> preferredRequestSkills(List<String> requestSkills, List<String> responseSkills) {
+        return defaultList(requestSkills).isEmpty() ? defaultList(responseSkills) : defaultList(requestSkills);
+    }
+
+    private String normalizeSkillKey(String value) {
+        return value == null ? "" : value.trim().replaceAll("\\s+", " ").toLowerCase();
+    }
+
+    private String findRelatedResumeSkill(String jobKey, Map<String, String> resumeSkillNames) {
+        for (Map.Entry<String, String> entry : resumeSkillNames.entrySet()) {
+            if (isRelatedSkill(jobKey, entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isRelatedSkill(String jobKey, String resumeKey) {
+        if (jobKey.isBlank() || resumeKey.isBlank() || jobKey.equals(resumeKey)) {
+            return false;
+        }
+
+        return resumeKey.startsWith(jobKey + " ") || jobKey.startsWith(resumeKey + " ");
+    }
+
     private String defaultText(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value;
     }
@@ -563,25 +1139,4 @@ public class GapLlmAnalyzeService {
         return priority.toLowerCase();
     }
 
-    private String maskApiKey(String value) {
-        if (value == null || value.isBlank()) {
-            return "(empty)";
-        }
-
-        String trimmed = value.trim();
-        int visibleLength = Math.min(7, trimmed.length());
-        return trimmed.substring(0, visibleLength) + "...****";
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-
-        if (value.length() <= maxLength) {
-            return value;
-        }
-
-        return value.substring(0, maxLength) + "...(truncated)";
-    }
 }

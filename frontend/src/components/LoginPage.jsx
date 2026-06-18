@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import resumeMatchLogo from '../assets/resumematch-logo.svg';
+import { API_BASE_URL } from '../config/api';
 import './LoginPage.css';
 
 const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '6c26e45a1be28d1c9d6d41d9edaeb2d2';
@@ -16,7 +17,7 @@ const LoginPage = () => {
 
   const handleDemoLogin = async () => {
     try {
-      const response = await axios.post('http://localhost:8080/api/oauth/demo');
+      const response = await axios.post(`${API_BASE_URL}/api/oauth/demo`);
 
       localStorage.setItem('memberId', response.data.id);
       localStorage.setItem('nickname', response.data.nickname);

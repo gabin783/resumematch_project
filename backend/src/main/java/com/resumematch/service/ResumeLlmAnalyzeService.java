@@ -153,24 +153,21 @@ public class ResumeLlmAnalyzeService {
             return response;
         } catch (RestClientResponseException e) {
             log.error(
-                    "Resume commercial LLM API request failed: status={}, body={}",
-                    e.getStatusCode(),
-                    truncate(e.getResponseBodyAsString(), 800),
-                    e
+                    "Resume commercial LLM API request failed: status={}",
+                    e.getStatusCode()
             );
             return fallbackAnalyze(resumeText, "commercial LLM API request failed");
         } catch (Exception e) {
-            log.error("Resume LLM analyze failed: {}", e.getMessage(), e);
+            log.error("Resume LLM analyze failed: {}", e.getMessage());
             return fallbackAnalyze(resumeText, "resume LLM analyze failed");
         }
     }
 
     private String callCommercialLlm(String resumeText) throws Exception {
         log.info(
-                "Calling resume commercial LLM API: model={}, baseUrl={}, apiKey={}",
+                "Calling resume commercial LLM API: model={}, baseUrl={}",
                 model,
-                baseUrl,
-                maskApiKey(apiKey)
+                baseUrl
         );
 
         RestTemplate restTemplate = new RestTemplate();
@@ -264,7 +261,7 @@ public class ResumeLlmAnalyzeService {
         try {
             parsed = objectMapper.readValue(json, ResumeParseResponse.class);
         } catch (Exception e) {
-            log.error("Failed to parse resume LLM JSON response. rawResponse={}", truncate(content, 1000), e);
+            log.error("Failed to parse resume LLM JSON response");
             throw e;
         }
 
@@ -348,7 +345,7 @@ public class ResumeLlmAnalyzeService {
                     .recommendedJobTypes(List.of())
                     .build();
         } catch (Exception e) {
-            log.error("Resume local fallback analyze failed: {}", e.getMessage(), e);
+            log.error("Resume local fallback analyze failed: {}", e.getMessage());
             return ResumeParseResponse.builder()
                     .status("success")
                     .count(0)
@@ -716,25 +713,4 @@ public class ResumeLlmAnalyzeService {
         return value == null || value.trim().isEmpty() ? fallback : value;
     }
 
-    private String maskApiKey(String value) {
-        if (value == null || value.isBlank()) {
-            return "(empty)";
-        }
-
-        String trimmed = value.trim();
-        int visibleLength = Math.min(7, trimmed.length());
-        return trimmed.substring(0, visibleLength) + "...****";
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-
-        if (value.length() <= maxLength) {
-            return value;
-        }
-
-        return value.substring(0, maxLength) + "...(truncated)";
-    }
 }

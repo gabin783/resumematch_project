@@ -50,7 +50,6 @@ public class KakaoService {
         // 4. DB에 이미 있는 유저인지 확인하고, 없으면 새로 가입시키기
         return memberRepository.findByKakaoId(kakaoId)
                 .orElseGet(() -> {
-                    System.out.println("🎉 새로운 회원이 가입했습니다: " + nickname);
                     Member newMember = Member.builder()
                             .kakaoId(kakaoId)
                             .nickname(nickname)

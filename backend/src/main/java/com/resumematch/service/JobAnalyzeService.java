@@ -54,24 +54,21 @@ public class JobAnalyzeService {
             return response;
         } catch (RestClientResponseException e) {
             log.error(
-                    "Commercial LLM API request failed: status={}, body={}",
-                    e.getStatusCode(),
-                    truncate(e.getResponseBodyAsString(), 800),
-                    e
+                    "Commercial LLM API request failed: status={}",
+                    e.getStatusCode()
             );
             return fallbackResponse("commercial LLM API request failed");
         } catch (Exception e) {
-            log.error("Job analyze failed: {}", e.getMessage(), e);
+            log.error("Job analyze failed: {}", e.getMessage());
             return fallbackResponse("job analyze failed");
         }
     }
 
     private String callCommercialLlm(String jobDescription) throws Exception {
         log.info(
-                "Calling commercial LLM API: model={}, baseUrl={}, apiKey={}",
+                "Calling commercial LLM API: model={}, baseUrl={}",
                 model,
-                baseUrl,
-                maskApiKey(apiKey)
+                baseUrl
         );
 
         RestTemplate restTemplate = new RestTemplate();
@@ -142,7 +139,7 @@ public class JobAnalyzeService {
         try {
             response = objectMapper.readValue(json, JobAnalyzeResponse.class);
         } catch (Exception e) {
-            log.error("Failed to parse LLM JSON response. rawResponse={}", truncate(content, 1000), e);
+            log.error("Failed to parse LLM JSON response");
             throw e;
         }
 
@@ -182,28 +179,6 @@ public class JobAnalyzeService {
 
     private String defaultText(String value, String fallback) {
         return value == null || value.trim().isEmpty() ? fallback : value;
-    }
-
-    private String maskApiKey(String value) {
-        if (value == null || value.isBlank()) {
-            return "(empty)";
-        }
-
-        String trimmed = value.trim();
-        int visibleLength = Math.min(7, trimmed.length());
-        return trimmed.substring(0, visibleLength) + "...****";
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-
-        if (value.length() <= maxLength) {
-            return value;
-        }
-
-        return value.substring(0, maxLength) + "...(truncated)";
     }
 
     private JobAnalyzeResponse fallbackResponse(String reason) {

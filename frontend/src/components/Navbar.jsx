@@ -24,6 +24,7 @@ const Navbar = () => {
   const handleLogout = () => {
     localStorage.removeItem('memberId');
     localStorage.removeItem('nickname');
+    localStorage.removeItem('isDemo');
     setIsLoggedIn(false);
     navigate('/');
   };

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 
 const KakaoCallback = () => {
   const navigate = useNavigate();
@@ -15,19 +16,18 @@ const KakaoCallback = () => {
     const code = params.get("code");
 
     if (code) {
-      console.log("카카오에서 받아온 인가 코드:", code);
-
-      axios.post('http://localhost:8080/api/oauth/kakao', { code: code })
+      axios.post(`${API_BASE_URL}/api/oauth/kakao`, { code: code })
         .then(response => {
-          console.log("백엔드 로그인 성공 응답:", response.data);
-          
           localStorage.setItem('memberId', response.data.id);
           localStorage.setItem('nickname', response.data.nickname);
           
           navigate('/'); 
         })
         .catch(error => {
-          console.error("로그인 에러:", error);
+          console.error("로그인 에러:", {
+            status: error.response?.status,
+            message: error.message,
+          });
           // 알림창이 너무 많이 뜨는 것을 막기 위해 에러 알림은 주석 처리하거나 빼두셔도 좋습니다.
           // alert("로그인 처리 중 문제가 발생했습니다."); 
           navigate('/');

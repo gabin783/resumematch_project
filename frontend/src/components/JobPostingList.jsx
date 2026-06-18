@@ -2,24 +2,25 @@ import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Briefcase, ExternalLink, ShieldCheck } from 'lucide-react';
+import { API_BASE_URL } from '../config/api';
+import { getMatchScoreLevel, roundMatchScore } from '../utils/matchScore';
 import './JobPostingList.css';
 
-const RECOMMENDATION_API_URL = 'http://localhost:8080/api/jobs/recommendations';
-const LEGACY_JOBS_API_URL = 'http://localhost:8080/api/jobs';
-const MYPAGE_DASHBOARD_API_URL = 'http://localhost:8080/api/mypage/dashboard';
+const RECOMMENDATION_API_URL = `${API_BASE_URL}/api/jobs/recommendations`;
+const LEGACY_JOBS_API_URL = `${API_BASE_URL}/api/jobs`;
+const MYPAGE_DASHBOARD_API_URL = `${API_BASE_URL}/api/mypage/dashboard`;
 
-const filters = ['전체', '높은 추천도'];
+const filters = ['전체', '관련도 높음'];
 
 const getScoreTone = (score) => {
-  if (score >= 80) return 'high';
-  if (score >= 60) return 'medium';
-  return 'low';
+  return getMatchScoreLevel(score) || 'low';
 };
 
 const getScoreLabel = (score) => {
-  if (score >= 80) return '추천도 높음';
-  if (score >= 60) return '추천도 보통';
-  return '추천도 낮음';
+  const level = getMatchScoreLevel(score);
+  if (level === 'high') return '관련도 높음';
+  if (level === 'medium') return '관련도 보통';
+  return '관련도 낮음';
 };
 
 const includesAny = (value, keywords) => {
@@ -170,7 +171,7 @@ function JobPostingList() {
         }
       } catch (error) {
         console.error('마이페이지 분석 기록 조회 실패:', error);
-        setErrorMessage('추천 기준 확인에 실패했습니다.');
+        setErrorMessage('탐색 기준 확인에 실패했습니다.');
       } finally {
         setIsLoading(false);
       }
@@ -185,8 +186,8 @@ function JobPostingList() {
     return jobs.filter((job) => {
       const title = job.title || '';
 
-      if (selectedFilter === '높은 추천도') {
-        return job.matchScore >= 80;
+      if (selectedFilter === '관련도 높음') {
+        return (roundMatchScore(job.matchScore) ?? 0) >= 80;
       }
 
       if (selectedFilter === '백엔드') {
@@ -212,7 +213,7 @@ function JobPostingList() {
 
   const handleMatchAnalysis = () => {
     // TODO: Connect this action to the resume matching flow with the selected job context.
-    alert('상세 분석 기능은 연결 예정입니다.');
+    alert('상세 보기 기능은 연결 예정입니다.');
   };
 
   const handleFavoriteToggle = (job) => {
@@ -239,7 +240,7 @@ function JobPostingList() {
           <div className="job-access-empty-visual" aria-hidden="true">
             <Briefcase size={82} />
           </div>
-          <h2>{isGuest ? '추천공고를 확인하려면 로그인이 필요합니다' : '아직 추천 기준이 없습니다'}</h2>
+          <h2>{isGuest ? '추천공고를 확인하려면 로그인이 필요합니다' : '아직 탐색 기준이 없습니다'}</h2>
           <p>
             {isGuest
               ? (
@@ -299,16 +300,16 @@ function JobPostingList() {
         <div>
           <h1>
             <Briefcase size={30} />
-            추천 채용 공고
+            관련 채용 공고
           </h1>
-          <p>이력서 분석 후 관련 공고를 확인하고 저장할 수 있습니다.</p>
+          <p>분석 결과와 직무 키워드를 참고해 채용공고를 탐색할 수 있습니다.</p>
         </div>
         <aside className="recommendation-standard">
           <div className="recommendation-standard-title">
             <ShieldCheck size={18} />
-            <strong>추천 기준</strong>
+            <strong>탐색 기준</strong>
           </div>
-          <span>이력서 기반 스킬 매칭 · 스킬 갭 분석 · 관심 직무</span>
+          <span>직무 키워드와 기술 태그를 참고한 공고 목록입니다.</span>
         </aside>
       </section>
 
@@ -344,7 +345,7 @@ function JobPostingList() {
         </section>
       ) : accessState === 'no-analysis' ? (
         <section className="job-state-card action">
-          <h2>아직 추천 기준이 없습니다.</h2>
+          <h2>아직 탐색 기준이 없습니다.</h2>
           <p>이력서와 채용공고를 먼저 분석하면 추천공고를 확인할 수 있습니다.</p>
           <button type="button" onClick={() => navigate('/match')}>
             이력서 매칭 시작하기
@@ -376,11 +377,11 @@ function JobPostingList() {
 
                 <div className="recommendation-detail-grid">
                   <div className="recommendation-reason-block">
-                    <strong>추천 상세</strong>
+                    <strong>공고 참고 정보</strong>
                     <p>업데이트 준비 중</p>
                   </div>
                   <div className="recommendation-missing-block">
-                    <strong>스킬 보완 정보</strong>
+                    <strong>기술 태그 정보</strong>
                     <p>업데이트 준비 중</p>
                   </div>
                 </div>
@@ -391,7 +392,7 @@ function JobPostingList() {
                     <ExternalLink size={15} />
                   </button>
                   <button type="button" className="analyze-job-btn" onClick={handleMatchAnalysis}>
-                    상세 분석
+                    상세 보기
                     <BarChart3 size={15} />
                   </button>
                   <button

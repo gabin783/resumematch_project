@@ -946,7 +946,39 @@
     width: 100%;
   }
 
-  .summary-strip,
+  .summary-strip {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+    margin: 0 0 10px;
+    padding: 0;
+    overflow-x: visible;
+  }
+
+  .summary-mini-card {
+    min-width: 0;
+    min-height: 66px;
+    padding: 8px 6px;
+  }
+
+  .summary-mini-card span {
+    display: block;
+    font-size: 10.5px;
+    line-height: 1.2;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+  }
+
+  .summary-mini-card strong {
+    margin-top: 6px;
+    font-size: 20px;
+  }
+
+  .summary-mini-card p {
+    display: none;
+  }
+
   .mypage-menu {
     grid-template-columns: 1fr;
   }
@@ -959,10 +991,6 @@
     min-height: 36px;
     padding: 0 12px;
     font-size: 12.5px;
-  }
-
-  .summary-mini-card {
-    padding: 9px 10px;
   }
 
   .panel-heading {

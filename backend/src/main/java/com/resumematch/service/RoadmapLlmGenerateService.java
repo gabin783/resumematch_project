@@ -22,8 +22,6 @@ import java.util.Map;
 @Service
 public class RoadmapLlmGenerateService {
     private static final Logger log = LoggerFactory.getLogger(RoadmapLlmGenerateService.class);
-    private static final int LOG_RESPONSE_MAX_LENGTH = 1000;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${llm.api-key:}")
@@ -41,10 +39,9 @@ public class RoadmapLlmGenerateService {
         }
 
         log.info(
-                "Calling roadmap commercial LLM API: model={}, baseUrl={}, apiKey={}",
+                "Calling roadmap commercial LLM API: model={}, baseUrl={}",
                 model,
-                baseUrl,
-                maskApiKey(apiKey)
+                baseUrl
         );
 
         String content = callCommercialLlm(request);
@@ -240,11 +237,7 @@ public class RoadmapLlmGenerateService {
         try {
             return objectMapper.readValue(json, RoadmapResponse.class);
         } catch (Exception e) {
-            log.error(
-                    "Failed to parse roadmap LLM JSON response. rawResponse={}",
-                    truncate(content, LOG_RESPONSE_MAX_LENGTH),
-                    e
-            );
+            log.error("Failed to parse roadmap LLM JSON response");
             throw e;
         }
     }
@@ -288,24 +281,4 @@ public class RoadmapLlmGenerateService {
         return value == null || value.trim().isEmpty() ? "" : value;
     }
 
-    private String maskApiKey(String value) {
-        if (value == null || value.isBlank()) {
-            return "(empty)";
-        }
-
-        String trimmed = value.trim();
-        if (trimmed.length() <= 7) {
-            return "****";
-        }
-
-        return trimmed.substring(0, 7) + "...****";
-    }
-
-    private String truncate(String value, int maxLength) {
-        if (value == null || value.length() <= maxLength) {
-            return value;
-        }
-
-        return value.substring(0, maxLength) + "...";
-    }
 }

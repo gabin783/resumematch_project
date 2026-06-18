@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../config/api';
+import { roundMatchScore } from '../utils/matchScore';
 import './MyPage.css';
 
 const parseStoredList = (value) => {
@@ -53,7 +54,7 @@ const getAnalysisPayload = (result) => parseJsonSafely(result?.analysis) || {};
 
 const getMatchScore = (result) => {
   const parsed = getAnalysisPayload(result);
-  return Number.isFinite(Number(parsed.matchScore)) ? Number(parsed.matchScore) : null;
+  return roundMatchScore(parsed.matchScore);
 };
 
 const getRequirementSkills = (result) =>
