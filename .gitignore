@@ -10,11 +10,19 @@ build/
 backend/.gradle/
 backend/build/
 out/
+*.jar
 
 # Environment files
 .env
 .env.*
+deploy-project/.env
 !.env.example
+
+# Deployment data and local artifacts
+job_posting.sql
+*.pdf
+*.docx
+archive/
 
 # IDE / editor
 .idea/

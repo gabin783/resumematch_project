@@ -4,7 +4,7 @@ import resumeMatchLogo from '../assets/resumematch-logo.svg';
 import { API_BASE_URL } from '../config/api';
 import './LoginPage.css';
 
-const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '6c26e45a1be28d1c9d6d41d9edaeb2d2';
+const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '';
 const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/oauth/kakao/callback';
 
 const LoginPage = () => {
