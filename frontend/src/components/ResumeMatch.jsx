@@ -33,26 +33,12 @@ const DEMO_JOB_URL = 'https://www.wanted.co.kr/wd/360817';
 
 const demoResumeSamples = [
   {
-    key: 'backend',
-    title: '백엔드 지망자 샘플',
-    description: 'Java, Spring Boot, MySQL 중심 이력서입니다.',
-    pdf: '/sample_resume/backend_resume_sample.pdf',
-    docx: '/sample_resume/backend_resume_sample.docx',
-  },
-  {
-    key: 'frontend',
-    title: '프론트엔드 지망자 샘플',
-    description: 'React, TypeScript 중심 이력서입니다.',
-    pdf: '/sample_resume/frontend_resume_sample.pdf',
-    docx: '/sample_resume/frontend_resume_sample.docx',
-  },
-  {
     key: 'fullstack',
-    title: '풀스택 지망자 샘플',
+    title: '이력서',
     description: '프론트엔드와 백엔드 경험이 모두 포함된 이력서입니다.',
     pdf: '/sample_resume/fullstack_resume_sample.pdf',
     docx: '/sample_resume/fullstack_resume_sample.docx',
-  },
+  }
 ];
 
 const steps = [
@@ -546,11 +532,13 @@ const ResumeMatch = () => {
             {demoResumeSamples.map((sample) => (
               <div className="rm-demo-item" key={sample.key}>
                 <a className="rm-demo-pdf" href={sample.pdf} download>
-                  {sample.title.replace(' 지망자 샘플', '')} 샘플 PDF
+                  {sample.title} 샘플 PDF
                 </a>
-                <a className="rm-demo-docx" href={sample.docx} download>
-                  DOCX
-                </a>
+                {sample.docx ? (
+                  <a className="rm-demo-docx" href={sample.docx} download>
+                    DOCX
+                  </a>
+                ) : null}
               </div>
             ))}
           </div>
