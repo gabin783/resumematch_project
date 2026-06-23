@@ -109,7 +109,6 @@ public class ResumeLlmAnalyzeService {
     );
 
     private final ResumeAnalyzerService resumeAnalyzerService;
-    private final OllamaAiService ollamaAiService;
 
     @Value("${llm.api-key:}")
     private String apiKey;
@@ -120,9 +119,8 @@ public class ResumeLlmAnalyzeService {
     @Value("${llm.base-url:https://api.openai.com/v1/chat/completions}")
     private String baseUrl;
 
-    public ResumeLlmAnalyzeService(ResumeAnalyzerService resumeAnalyzerService, OllamaAiService ollamaAiService) {
+    public ResumeLlmAnalyzeService(ResumeAnalyzerService resumeAnalyzerService) {
         this.resumeAnalyzerService = resumeAnalyzerService;
-        this.ollamaAiService = ollamaAiService;
     }
 
     public ResumeParseResponse analyze(String resumeText) {
@@ -297,24 +295,10 @@ public class ResumeLlmAnalyzeService {
         try {
             List<String> sectionSkills = extractSectionSkillPhrases(resumeText);
             List<String> cleanedKeywords = extractLocalKeywords(resumeText);
-            List<String> aiCandidates = cleanedKeywords.stream()
-                    .filter(word -> word.matches(".*[a-zA-Z]+.*"))
-                    .collect(Collectors.toList());
-
             List<String> finalSkills = new ArrayList<>(sectionSkills);
-            if (!aiCandidates.isEmpty()) {
-                String prompt = "[목록]: " + String.join(", ", aiCandidates) + "\n\n" +
-                        "명령: 이 목록에서 프로그래밍 언어, 프레임워크, DB, 인프라 도구만 골라주세요.\n" +
-                        "규칙 1: Blue, Green, List, Return 같은 일반 영어 단어는 제외하세요.\n" +
-                        "규칙 2: 설명 없이 단어만 쉼표(,)로 나열하세요.\n" +
-                        "결과: ";
-
-                String filteredResult = ollamaAiService.callGemmaDirectly(prompt);
-                finalSkills.addAll(Arrays.stream(filteredResult.replace("\n", ",").split(","))
-                        .map(String::trim)
-                        .filter(this::isLikelySkill)
-                        .collect(Collectors.toList()));
-            }
+            finalSkills.addAll(cleanedKeywords.stream()
+                    .filter(this::isLikelySkill)
+                    .collect(Collectors.toList()));
 
             for (String core : MUST_HAVE_STACKS) {
                 boolean isInOriginal = cleanedKeywords.stream().anyMatch(k -> k.equalsIgnoreCase(core));

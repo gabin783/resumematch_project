@@ -14,9 +14,6 @@ import java.util.stream.Collectors;
 public class JobMatchingService {
 
     @Autowired
-    private OllamaAiService ollamaAiService;
-
-    @Autowired
     private JobPostingRepository jobPostingRepository;
 
     // ✨ 1. 리액트에서 요청이 오면 DB 데이터를 조회해서 매칭을 준비하는 메서드
@@ -61,10 +58,17 @@ public class JobMatchingService {
             matchRate = (int) (((double) matchedSkills.size() / requiredSkills.size()) * 100);
         }
 
-        // OllamaAiService에서 임시(Mock) 응답을 주도록 설정해둔 상태입니다!
-        String aiFeedback = ollamaAiService.generateHybridFeedback(matchRate, matchedSkills, missingSkills);
+        String aiFeedback = generateHybridFeedback(matchRate, missingSkills);
 
         // 연산된 모든 데이터를 DTO에 예쁘게 포장해서 컨트롤러로 전달
         return new JobMatchResponse(matchRate, matchedSkills, missingSkills, aiFeedback);
+    }
+
+    private String generateHybridFeedback(int matchRate, List<String> missingSkills) {
+        String missingSkillsText = missingSkills.isEmpty() ? "없음" : missingSkills.toString();
+
+        return "현재 매칭률은 " + matchRate + "%로 아주 고무적인 결과를 보이고 있습니다. " +
+                "공고 요구 스킬 중 현재 부족한 기술 스택인 " + missingSkillsText + " 부분을 조금만 더 집중적으로 보완하신다면 " +
+                "서류 및 기술 면접 통과 확률을 극대화할 수 있을 것입니다. 힘내세요!";
     }
 }

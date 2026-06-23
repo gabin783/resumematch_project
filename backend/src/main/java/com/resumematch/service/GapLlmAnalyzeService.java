@@ -27,8 +27,6 @@ public class GapLlmAnalyzeService {
     private static final Logger log = LoggerFactory.getLogger(GapLlmAnalyzeService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    private final OllamaAiService ollamaAiService;
-
     @Value("${llm.api-key:}")
     private String apiKey;
 
@@ -37,10 +35,6 @@ public class GapLlmAnalyzeService {
 
     @Value("${llm.base-url:https://api.openai.com/v1/chat/completions}")
     private String baseUrl;
-
-    public GapLlmAnalyzeService(OllamaAiService ollamaAiService) {
-        this.ollamaAiService = ollamaAiService;
-    }
 
     public GapMatchResponse analyze(List<String> resumeSkills, GapMatchRequest request) {
         if (resumeSkills == null || resumeSkills.isEmpty()) {
@@ -272,33 +266,20 @@ public class GapLlmAnalyzeService {
     }
 
     private GapMatchResponse fallbackAnalyze(List<String> resumeSkills, GapMatchRequest request, String reason) {
-        log.warn("Gap LLM analyze failed, fallback to Ollama/Gemma: reason={}", reason);
+        log.warn("Gap LLM analyze failed, fallback to local analyzer: reason={}", reason);
 
-        try {
-            String jsonResponse = ollamaAiService.analyzeGapWithGemma(
-                    resumeSkills,
-                    request.getJdText(),
-                    request.getTargetJob()
-            );
-            GapMatchResponse parsed = parseFallbackResponse(jsonResponse);
-            return normalizeResponse(parsed, resumeSkills, request);
-        } catch (Exception e) {
-            log.error("Gap fallback analyze failed: {}", e.getMessage());
-            return normalizeResponse(
-                    GapMatchResponse.builder()
-                            .matchScore(50)
-                            .targetJob(defaultText(request.getTargetJob(), "분석된 직무"))
-                            .analysis("스킬 갭 분석 결과를 불러오지 못했습니다.")
-                            .learningDirection(buildDefaultLearningDirection(request, List.of()))
-                            .missingSkills(defaultList(request.getRequiredSkills()).stream()
-                                    .limit(3)
-                                    .map(skill -> skillScore(skill, 30, "채용공고 필수 기술입니다.", "fallback", "high"))
-                                    .toList())
-                            .build(),
-                    resumeSkills,
-                    request
-            );
-        }
+        GapMatchResponse fallbackResponse = GapMatchResponse.builder()
+                .matchScore(50)
+                .targetJob(defaultText(request.getTargetJob(), "분석된 직무"))
+                .analysis("스킬 갭 분석 결과를 불러오지 못했습니다.")
+                .learningDirection(buildDefaultLearningDirection(request, List.of()))
+                .missingSkills(defaultList(request.getRequiredSkills()).stream()
+                        .limit(3)
+                        .map(skill -> skillScore(skill, 30, "채용공고 필수 기술입니다.", "fallback", "high"))
+                        .toList())
+                .build();
+
+        return normalizeResponse(fallbackResponse, resumeSkills, request);
     }
 
     private GapMatchResponse normalizeResponse(GapMatchResponse response, List<String> resumeSkills, GapMatchRequest request) {
@@ -892,59 +873,6 @@ public class GapLlmAnalyzeService {
         return primarySkill + " 기본 개념과 문법을 먼저 학습하세요.\n"
                 + "REST API CRUD 프로젝트를 만들어 이력서 근거를 추가하세요.\n"
                 + preferredSkill + "를 활용한 배포/운영 흐름을 실습하세요.";
-    }
-
-    private GapMatchResponse parseFallbackResponse(String content) throws Exception {
-        JsonNode root = objectMapper.readTree(cleanJson(content));
-        return GapMatchResponse.builder()
-                .matchScore(root.path("matchScore").asInt(0))
-                .targetJob(root.path("targetJob").asText(""))
-                .analysis(root.path("analysis").asText(""))
-                .learningDirection(root.path("learningDirection").asText(""))
-                .ownedSkills(readSkillScoreArray(root.path("ownedSkills"), 75, "이력서에서 확인된 기술입니다.", "low"))
-                .matchedSkills(readSkillScoreArray(root.path("matchedSkills"), 90, "이력서와 채용공고에 모두 포함된 기술입니다.", "low"))
-                .partialSkills(readSkillScoreArray(root.path("partialSkills"), 60, "관련 경험이 일부 확인된 기술입니다.", "medium"))
-                .missingSkills(readSkillScoreArray(root.path("missingSkills"), 30, "채용공고에는 있으나 이력서 근거가 부족한 기술입니다.", "high"))
-                .requiredSkills(readStringArray(root.path("requiredSkills")))
-                .preferredSkills(readStringArray(root.path("preferredSkills")))
-                .mainTasks(readStringArray(root.path("mainTasks")))
-                .jobKeywords(readStringArray(root.path("jobKeywords")))
-                .jobSummary(root.path("jobSummary").asText(""))
-                .build();
-    }
-
-    private List<SkillScoreDto> readSkillScoreArray(JsonNode node, int defaultScore, String defaultReason, String defaultPriority) {
-        if (!node.isArray()) {
-            return List.of();
-        }
-
-        return java.util.stream.StreamSupport.stream(node.spliterator(), false)
-                .map(item -> {
-                    if (item.isTextual()) {
-                        return skillScore(item.asText(), defaultScore, defaultReason, "fallback", defaultPriority);
-                    }
-
-                    return skillScore(
-                            item.path("name").asText(item.path("skill").asText("")),
-                            item.path("score").asInt(defaultScore),
-                            item.path("reason").asText(defaultReason),
-                            item.path("evidence").asText("fallback"),
-                            item.path("priority").asText(defaultPriority)
-                    );
-                })
-                .filter(item -> item.getName() != null && !item.getName().isBlank())
-                .toList();
-    }
-
-    private List<String> readStringArray(JsonNode node) {
-        if (!node.isArray()) {
-            return List.of();
-        }
-
-        return java.util.stream.StreamSupport.stream(node.spliterator(), false)
-                .map(JsonNode::asText)
-                .filter(value -> value != null && !value.isBlank())
-                .toList();
     }
 
     private int estimateScore(GapMatchResponse response) {

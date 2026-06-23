@@ -798,6 +798,21 @@
   white-space: normal;
 }
 
+.learning-step-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  color: #4f67ee;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.learning-step-link:hover {
+  text-decoration: underline;
+}
+
 .learning-step-item small,
 .practice-project-box small {
   display: block;

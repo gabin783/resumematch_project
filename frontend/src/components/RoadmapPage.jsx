@@ -98,6 +98,7 @@ const normalizeLearningSteps = (value) =>
         title: step,
         description: '',
         expectedOutput: '',
+        url: '',
       };
     }
 
@@ -107,6 +108,7 @@ const normalizeLearningSteps = (value) =>
       title: step.title || `학습 가이드 ${index + 1}`,
       description: step.description || '',
       expectedOutput: step.expectedOutput || '',
+      url: step.url || step.link || '',
     };
   });
 
@@ -145,6 +147,7 @@ const normalizeWeeks = (value) =>
 const getLearningStepTypeLabel = (type) => {
   if (type === 'practice') return '실습';
   if (type === 'resume') return '이력서';
+  if (type === 'course') return '강의';
   return '개념';
 };
 
@@ -152,6 +155,204 @@ const hasValidUrl = (url) => Boolean(url && url !== '#');
 
 const createGoogleSearchUrl = (query) =>
   `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+
+const kotlinReferenceResources = [
+  {
+    id: 'kotlin-reference-concept',
+    type: 'concept',
+    title: 'Kotlin 기본 문법 이해',
+    description: '함수, 변수, 클래스, 조건문 등 Kotlin 기초 문법을 공식 문서로 정리합니다.',
+    url: 'https://kotlinlang.org/docs/basic-syntax.html',
+  },
+  {
+    id: 'kotlin-reference-course',
+    type: 'course',
+    title: 'Kotlin 문법 1시간 정리',
+    description: 'Kotlin 기본 문법과 주요 개념을 짧은 강의로 복습합니다.',
+    url: 'https://www.inflearn.com/course/%EC%BD%94%ED%8B%80%EB%A6%B0-%EB%AC%B8%EB%B2%95%EC%B4%9D%EC%A0%95%EB%A6%AC-1%EC%8B%9C%EA%B0%84',
+  },
+  {
+    id: 'kotlin-reference-practice',
+    type: 'practice',
+    title: 'Kotlin 계산기 실습 예제',
+    description: 'Kotlin 문법을 활용해 간단한 계산기 프로그램 구현 예제를 참고합니다.',
+    url: 'https://www.youtube.com/results?search_query=Kotlin+console+calculator+tutorial',
+  },
+];
+
+const deploymentReferenceCourses = [
+  {
+    id: 'kubernetes-official-tutorials',
+    title: 'Kubernetes 공식 튜토리얼',
+    provider: 'Kubernetes',
+    time: '참고용',
+    level: '기초',
+    tags: ['Kubernetes', '공식', '배포'],
+    description: 'Kubernetes 기본 개념과 배포 흐름을 공식 문서로 학습합니다.',
+    url: 'https://kubernetes.io/docs/tutorials/',
+    resourceType: 'kubernetes',
+  },
+  {
+    id: 'kubernetes-deployment-concepts',
+    title: 'Kubernetes Deployment 기본',
+    provider: 'Kubernetes',
+    time: '참고용',
+    level: '기초',
+    tags: ['Kubernetes', 'Deployment', '배포'],
+    description: 'Deployment를 통해 애플리케이션 배포와 업데이트 방식을 이해합니다.',
+    url: 'https://kubernetes.io/docs/concepts/workloads/controllers/deployment/',
+    resourceType: 'kubernetes',
+  },
+  {
+    id: 'spring-boot-docker-guide',
+    title: 'Spring Boot Docker 이미지 만들기',
+    provider: 'Spring',
+    time: '참고용',
+    level: '기초',
+    tags: ['Spring Boot', 'Docker', '배포'],
+    description: 'Spring Boot 애플리케이션을 Docker 이미지로 빌드하는 방법을 학습합니다.',
+    url: 'https://spring.io/guides/topicals/spring-boot-docker/',
+    resourceType: 'spring-docker',
+  },
+  {
+    id: 'github-actions-official-docs',
+    title: 'GitHub Actions 공식 문서',
+    provider: 'GitHub',
+    time: '참고용',
+    level: '기초',
+    tags: ['GitHub Actions', 'CI/CD', '배포 자동화'],
+    description: 'GitHub Actions를 활용한 기본 CI/CD 흐름을 학습합니다.',
+    url: 'https://docs.github.com/actions',
+    resourceType: 'ci-cd',
+  },
+];
+
+const includesKotlin = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => String(value).toLowerCase().includes('kotlin'));
+
+const includesSpring = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => /spring(?:\s*boot|\s*mvc)?/i.test(String(value)));
+
+const isSpringCourse = (course) =>
+  includesSpring(course?.title, course?.provider, course?.keyword, course?.tags, course?.url);
+
+const includesKubernetes = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => /kubernetes|k8s|쿠버네티스/i.test(String(value)));
+
+const includesDocker = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => /docker|도커|컨테이너/i.test(String(value)));
+
+const includesCiCd = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => /ci\s*\/?\s*cd|github\s*actions|배포\s*자동화/i.test(String(value)));
+
+const includesDeployment = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => /deployment|deploy|배포|운영\s*환경/i.test(String(value)));
+
+const includesCoreGit = (...values) =>
+  values
+    .flatMap((value) => toArray(value))
+    .some((value) => {
+      const text = String(value).trim();
+      return /^(git|git 기본|git 기초|버전 관리|형상 관리)$/i.test(text)
+        || /(^|\s)git\s*(기본|기초|브랜치|버전 관리|형상 관리)(\s|$)/i.test(text);
+    });
+
+const isProGitCourse = (course) =>
+  /pro git book/i.test(String(course?.title || ''))
+  || /git-scm\.com\/book/i.test(String(course?.url || ''));
+
+const toKotlinReferenceCourse = (resource) => ({
+  id: resource.id,
+  title: resource.title,
+  provider:
+    resource.type === 'concept'
+      ? 'Kotlin 공식 문서'
+      : resource.type === 'course'
+        ? 'Inflearn'
+        : 'YouTube',
+  time: '참고용',
+  level: '기초',
+  tags: ['Kotlin', resource.type],
+  description: resource.description,
+  url: resource.url,
+});
+
+const deduplicateCourses = (courseList) => {
+  const seenTitles = new Set();
+  const seenUrls = new Set();
+
+  return courseList.filter((course) => {
+    const normalizedTitle = String(course?.title || '').trim().toLowerCase();
+    const normalizedUrl = String(course?.url || '').trim().toLowerCase();
+    const isDuplicate =
+      (normalizedTitle && seenTitles.has(normalizedTitle)) ||
+      (normalizedUrl && seenUrls.has(normalizedUrl));
+
+    if (isDuplicate) return false;
+    if (normalizedTitle) seenTitles.add(normalizedTitle);
+    if (normalizedUrl) seenUrls.add(normalizedUrl);
+    return true;
+  });
+};
+
+const getDisplayCourses = (
+  weekCourses,
+  globalCourses,
+  {
+    isKotlinWeek,
+    isSpringWeek,
+    isKubernetesWeek,
+    isDockerWeek,
+    isCiCdWeek,
+    hasDeploymentTopic,
+    isCoreGitWeek,
+  }
+) => {
+  if (isKotlinWeek) {
+    const kotlinCourses = weekCourses.filter((course) =>
+      includesKotlin(course?.title, course?.provider, course?.keyword, course?.tags, course?.url)
+    );
+    const kotlinReferences = kotlinReferenceResources.map(toKotlinReferenceCourse);
+
+    return deduplicateCourses(
+      [...kotlinCourses, ...kotlinReferences].filter((course) => !isSpringCourse(course))
+    );
+  }
+
+  const isDeploymentWeek = isKubernetesWeek || isDockerWeek || isCiCdWeek || hasDeploymentTopic;
+
+  if (isDeploymentWeek) {
+    const prioritizedReferences = [
+      deploymentReferenceCourses.find((course) => course.id === 'kubernetes-official-tutorials'),
+      deploymentReferenceCourses.find((course) => course.id === 'spring-boot-docker-guide'),
+      deploymentReferenceCourses.find((course) => course.id === 'github-actions-official-docs'),
+    ].filter(Boolean);
+
+    return deduplicateCourses(prioritizedReferences);
+  }
+
+  const sourceCourses = weekCourses.length > 0 ? weekCourses : globalCourses;
+  const filteredSourceCourses = sourceCourses.filter((course) =>
+    (isSpringWeek || !isSpringCourse(course))
+    && (isCoreGitWeek || !isProGitCourse(course))
+  );
+
+  return deduplicateCourses(
+    filteredSourceCourses
+  );
+};
 
 const buildWeeks = (skills, courses) => {
   const skillList = skills.length > 0 ? skills : ['기초 다지기', '핵심 역량 정제', '실전 프로젝트'];
@@ -224,12 +425,6 @@ const initialSelfCheckItems = [
   },
 ];
 
-const fallbackCompletionCriteria = [
-  'JPA 엔티티 관계 이해',
-  'MySQL 테이블 구조 설계',
-  'REST API와 DB 연동 흐름 설명',
-];
-
 const createSelfCheckItems = (items = initialSelfCheckItems) =>
   (items?.length ? items : initialSelfCheckItems).map((item, index) => {
     if (typeof item === 'string') {
@@ -256,12 +451,59 @@ const createInitialTaskState = (weeks) =>
     return acc;
   }, {});
 
+const getTaskCheckStorageKey = (memberId, roadmapId) =>
+  `roadmap-task-check:${memberId || 'guest'}:${roadmapId}`;
+
+const restoreTaskState = (weeks, storageKey) => {
+  const initialTaskState = createInitialTaskState(weeks);
+  if (!storageKey) return initialTaskState;
+
+  try {
+    const storedTaskState = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+    return Object.keys(initialTaskState).reduce((acc, taskId) => {
+      acc[taskId] = Boolean(storedTaskState?.[taskId]);
+      return acc;
+    }, {});
+  } catch (error) {
+    console.error('이번 주 할 일 상태 복원 실패:', error);
+    return initialTaskState;
+  }
+};
+
+const saveTaskState = (weeks, storageKey, taskState) => {
+  if (!storageKey) return;
+
+  const currentTaskIds = Object.keys(createInitialTaskState(weeks));
+  const stateToSave = currentTaskIds.reduce((acc, taskId) => {
+    acc[taskId] = Boolean(taskState[taskId]);
+    return acc;
+  }, {});
+
+  localStorage.setItem(storageKey, JSON.stringify(stateToSave));
+};
+
 const getCurrentWeekNumber = (weeks, taskState) => {
   const incompleteWeek = weeks.find((week) =>
     buildWeekTasks(week).some((task) => !taskState[task.id])
   );
 
   return incompleteWeek?.week || weeks[weeks.length - 1]?.week || 1;
+};
+
+const migrateTaskCheckStorage = (memberId, fromRoadmapId, toRoadmapId) => {
+  if (!fromRoadmapId || !toRoadmapId || String(fromRoadmapId) === String(toRoadmapId)) return;
+
+  const oldKey = getTaskCheckStorageKey(memberId, fromRoadmapId);
+  const newKey = getTaskCheckStorageKey(memberId, toRoadmapId);
+  const oldValue = localStorage.getItem(oldKey);
+
+  if (oldValue !== null && localStorage.getItem(newKey) === null) {
+    localStorage.setItem(newKey, oldValue);
+  }
+  if (oldValue !== null) {
+    localStorage.removeItem(oldKey);
+  }
 };
 
 const migrateSelfCheckStorage = (memberId, fromRoadmapId, toRoadmapId) => {
@@ -328,11 +570,14 @@ const RoadmapPage = () => {
 
         if (parsedCourses?.weeks) {
           const normalizedWeeks = normalizeWeeks(parsedCourses.weeks);
-          const initialTaskState = createInitialTaskState(normalizedWeeks);
+          const restoredTaskState = restoreTaskState(
+            normalizedWeeks,
+            getTaskCheckStorageKey(memberId, roadmapData.id || fallbackRoadmapStorageId)
+          );
 
           setApiWeeks(normalizedWeeks);
-          setCheckedTasks(initialTaskState);
-          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, initialTaskState));
+          setCheckedTasks(restoredTaskState);
+          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, restoredTaskState));
           setCourses(normalizeCourses(parsedCourses.recommendedCourses));
         } else {
           setApiWeeks([]);
@@ -387,16 +632,23 @@ const RoadmapPage = () => {
 
         if (response.data?.id) {
           migrateSelfCheckStorage(memberId, fallbackRoadmapStorageId, response.data.id);
+          migrateTaskCheckStorage(memberId, fallbackRoadmapStorageId, response.data.id);
           setGeneratedRoadmapId(response.data.id);
         }
 
         if (response.data?.weeks) {
           const normalizedWeeks = normalizeWeeks(response.data.weeks);
-          const initialTaskState = createInitialTaskState(normalizedWeeks);
+          const restoredTaskState = restoreTaskState(
+            normalizedWeeks,
+            getTaskCheckStorageKey(
+              memberId,
+              response.data.id || fallbackRoadmapStorageId
+            )
+          );
 
           setApiWeeks(normalizedWeeks);
-          setCheckedTasks(initialTaskState);
-          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, initialTaskState));
+          setCheckedTasks(restoredTaskState);
+          setSelectedWeek(getCurrentWeekNumber(normalizedWeeks, restoredTaskState));
           setCourses(normalizeCourses(response.data.recommendedCourses));
         } else {
           setApiWeeks([]);
@@ -424,18 +676,47 @@ const RoadmapPage = () => {
   const selectedWeekIndex = weeks.findIndex((week) => week.week === selectedWeek);
   const selectedWeekNumber = selectedWeekData?.week || selectedWeek || selectedWeekIndex + 1;
   const roadmapStorageId = roadmapData?.id || generatedRoadmapId || fallbackRoadmapStorageId;
+  const taskCheckStorageKey = getTaskCheckStorageKey(memberId, roadmapStorageId);
   const selfCheckStorageKey = `roadmap-self-check:${memberId || 'guest'}:${roadmapStorageId}:week-${selectedWeekNumber}`;
   const selectedWeekTasks = buildWeekTasks(selectedWeekData);
-  const selectedCompletionCriteria = selectedWeekData?.completionCriteria?.length
-    ? selectedWeekData.completionCriteria
-    : fallbackCompletionCriteria;
-  const selectedLearningSteps = selectedWeekData.learningSteps || [];
+  const weekSkills =
+    toArray(selectedWeekData?.focusSkills).length > 0
+      ? toArray(selectedWeekData.focusSkills)
+      : toArray(selectedWeekData?.tags).length > 0
+        ? toArray(selectedWeekData.tags)
+        : skillKeywords;
+  const selectedCompletionCriteria = selectedWeekData?.completionCriteria || [];
+  const originalLearningSteps = selectedWeekData.learningSteps || [];
   const selectedPracticeProject = selectedWeekData.practiceProject;
   const selectedSearchQueries = selectedWeekData.recommendedSearchQueries || [];
-  const selectedWeekCourses =
-    selectedWeekData.recommendedCourses?.length > 0
-      ? selectedWeekData.recommendedCourses
-      : courses;
+  const weekTopicValues = [
+    selectedWeekData?.title,
+    selectedWeekData?.summary,
+    weekSkills,
+    selectedWeekData?.tasks,
+  ];
+  const isKotlinWeek = includesKotlin(...weekTopicValues);
+  const isSpringWeek = includesSpring(...weekTopicValues);
+  const isKubernetesWeek = includesKubernetes(...weekTopicValues);
+  const isDockerWeek = includesDocker(...weekTopicValues);
+  const isCiCdWeek = includesCiCd(...weekTopicValues);
+  const hasDeploymentTopic = includesDeployment(...weekTopicValues);
+  const isCoreGitWeek = includesCoreGit(selectedWeekData?.title, weekSkills);
+  const selectedWeekCourses = getDisplayCourses(
+    selectedWeekData.recommendedCourses || [],
+    courses,
+    {
+      isKotlinWeek,
+      isSpringWeek,
+      isKubernetesWeek,
+      isDockerWeek,
+      isCiCdWeek,
+      hasDeploymentTopic,
+      isCoreGitWeek,
+    }
+  );
+  const selectedLearningSteps = originalLearningSteps;
+  const learningStepPreview = selectedLearningSteps.slice(0, 3);
   const hasPracticeProject =
     selectedPracticeProject &&
     (
@@ -445,18 +726,7 @@ const RoadmapPage = () => {
       selectedPracticeProject.completionDefinition ||
       selectedPracticeProject.resumeBullet
     );
-  const hasLearningResources =
-    selectedLearningSteps.length > 0 ||
-    hasPracticeProject ||
-    selectedSearchQueries.length > 0 ||
-    selectedWeekCourses.length > 0;
   const isFutureSelected = selectedWeek > currentWeek;
-  const weekSkills =
-    toArray(selectedWeekData?.focusSkills).length > 0
-      ? toArray(selectedWeekData.focusSkills)
-      : toArray(selectedWeekData?.tags).length > 0
-        ? toArray(selectedWeekData.tags)
-        : skillKeywords;
   const overviewSkills = weekSkills.slice(0, 2);
   const reasonText = '채용공고의 핵심 요구사항과 연결된 보완 항목입니다.';
   const taskItems = selectedWeekTasks.map((task) => {
@@ -487,12 +757,12 @@ const RoadmapPage = () => {
   useEffect(() => {
     if (isLoading || weeks.length === 0 || Object.keys(checkedTasks).length > 0) return;
 
-    const initialTaskState = createInitialTaskState(weeks);
-    const initialCurrentWeek = getCurrentWeekNumber(weeks, initialTaskState);
+    const restoredTaskState = restoreTaskState(weeks, taskCheckStorageKey);
+    const initialCurrentWeek = getCurrentWeekNumber(weeks, restoredTaskState);
 
-    setCheckedTasks(initialTaskState);
+    setCheckedTasks(restoredTaskState);
     setSelectedWeek(initialCurrentWeek);
-  }, [checkedTasks, isLoading, weeks]);
+  }, [checkedTasks, isLoading, taskCheckStorageKey, weeks]);
 
   useEffect(() => {
     if (!selectedWeekData || !selfCheckStorageKey) return;
@@ -522,10 +792,15 @@ const RoadmapPage = () => {
   const handleTaskToggle = (taskId) => {
     if (isFutureSelected) return;
 
-    setCheckedTasks((prev) => ({
-      ...prev,
-      [taskId]: !prev[taskId],
-    }));
+    setCheckedTasks((prev) => {
+      const nextTaskState = {
+        ...prev,
+        [taskId]: !prev[taskId],
+      };
+
+      saveTaskState(weeks, taskCheckStorageKey, nextTaskState);
+      return nextTaskState;
+    });
   };
 
   const openSelfCheckModal = () => {
@@ -754,17 +1029,28 @@ const RoadmapPage = () => {
             </article>
 
             <article className="roadmap-card lecture-card">
-              <h2>추천 학습 자료</h2>
+              <h2>학습 참고 자료</h2>
               {selectedLearningSteps.length > 0 ? (
                 <>
                   <section className="learning-resource-section">
                     <h3>이번 주 학습 가이드</h3>
                     <div className="learning-step-list learning-step-preview">
-                      {selectedLearningSteps.slice(0, 3).map((step) => (
+                      {learningStepPreview.map((step) => (
                         <article className="learning-step-item" key={step.id}>
                           <span>{getLearningStepTypeLabel(step.type)}</span>
                           <div>
                             <strong>{step.title}</strong>
+                            {hasValidUrl(step.url) ? (
+                              <a
+                                className="learning-step-link"
+                                href={step.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                참고 자료 보기
+                                <ExternalLink size={12} />
+                              </a>
+                            ) : null}
                           </div>
                         </article>
                       ))}
@@ -779,7 +1065,7 @@ const RoadmapPage = () => {
                   </button>
                 </>
               ) : (
-                <p className="learning-resource-empty">이번 주 학습 자료가 없습니다.</p>
+                <p className="learning-resource-empty">이번 주 학습 참고 자료가 없습니다.</p>
               )}
             </article>
           </section>
@@ -859,14 +1145,14 @@ const RoadmapPage = () => {
                   {detailModal === 'overview'
                     ? '현재 단계 상세'
                     : detailModal === 'resources'
-                      ? '추천 학습 자료 상세'
+                      ? '학습 참고 자료 상세'
                       : '이번 주 할 일 상세'}
                 </h2>
                 <p>
                   {detailModal === 'overview'
                     ? `${selectedWeekData.week}주차 학습 목표와 핵심 스킬입니다.`
                     : detailModal === 'resources'
-                      ? `${selectedWeekData.week}주차 추천 학습 자료입니다.`
+                      ? `${selectedWeekData.week}주차 학습 참고 자료입니다.`
                       : `${selectedWeekData.week}주차에 완료해야 할 학습 체크리스트입니다.`}
                 </p>
               </div>
@@ -913,6 +1199,17 @@ const RoadmapPage = () => {
                             <strong>{step.title}</strong>
                             {step.description ? <p>{step.description}</p> : null}
                             {step.expectedOutput ? <small>{step.expectedOutput}</small> : null}
+                            {hasValidUrl(step.url) ? (
+                              <a
+                                className="learning-step-link"
+                                href={step.url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                참고 자료 보기
+                                <ExternalLink size={13} />
+                              </a>
+                            ) : null}
                           </div>
                         </article>
                       ))}
@@ -964,7 +1261,7 @@ const RoadmapPage = () => {
 
                 {selectedWeekCourses.length > 0 ? (
                   <article className="roadmap-detail-block">
-                    <span>보조 강의</span>
+                    <span>참고 강의</span>
                     <div className="lecture-list">
                       {selectedWeekCourses.map((course) => (
                         <div className="lecture-item" key={course.id}>
@@ -973,6 +1270,7 @@ const RoadmapPage = () => {
                           </div>
                           <div>
                             <strong>{course.title}</strong>
+                            {course.description ? <p>{course.description}</p> : null}
                             <small>
                               <Clock size={12} />
                               {course.level} · {course.time} · {course.provider}

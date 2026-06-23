@@ -192,15 +192,22 @@ const getOwnedSkillStatus = (item, matchedSkills = []) => {
   return '보유';
 };
 
+const getMissingSkillRequirementType = (item, requiredSkills = [], preferredSkills = []) => {
+  if (hasSkill(requiredSkills, item?.name)) return 'required';
+  if (hasSkill(preferredSkills, item?.name)) return 'preferred';
+  return 'unknown';
+};
+
 const getMissingSkillStatus = (item, requiredSkills = [], preferredSkills = []) => {
+  const requirementType = getMissingSkillRequirementType(item, requiredSkills, preferredSkills);
+  if (requirementType === 'required') return '필수 보완';
+  if (requirementType === 'preferred') return '추가 학습';
   if (item?.statusLabel) return item.statusLabel;
   const priority = String(item?.priority || '').toLowerCase();
 
   if (priority === 'high') return '필수 보완';
   if (priority === 'medium') return '우선 학습';
   if (priority === 'low') return '추가 학습';
-  if (hasSkill(requiredSkills, item?.name)) return '필수 보완';
-  if (hasSkill(preferredSkills, item?.name)) return '추가 학습';
   return '우선 학습';
 };
 
@@ -368,6 +375,7 @@ const ResultPage = () => {
     }));
     const missingProgress = rawMissingProgress.map((item) => ({
       ...item,
+      requirementType: getMissingSkillRequirementType(item, jobRequiredSkills, jobPreferredSkills),
       statusLabel: getMissingSkillStatus(item, jobRequiredSkills, jobPreferredSkills),
     }));
     const strengthSkills =
@@ -472,6 +480,14 @@ const ResultPage = () => {
       return `${evidence}\n${reason}`;
     };
     const buildMissingEvidence = (item) => {
+      if (item.requirementType === 'required') {
+        return '채용공고의 필수 기술이지만 이력서 원본 스킬에서 확인되지 않습니다.';
+      }
+
+      if (item.requirementType === 'preferred') {
+        return '채용공고의 우대 기술이지만 이력서 원본 스킬에서 확인되지 않습니다.';
+      }
+
       const evidence = item.evidence || `이력서에서 ${item.name}을 직접 활용한 프로젝트나 성과가 충분히 드러나지 않았습니다.`;
       const reason = item.reason || `${report.targetJob} 공고에서 ${item.name} 역량이 필요하지만 이력서 근거가 부족합니다.`;
 
@@ -490,13 +506,26 @@ const ResultPage = () => {
         : '이력서에서 확인된 보유 역량입니다.',
       items: source.map((item) => {
         const isDirectMatched = !isMissing && matchedSkillNames.has(normalizeSkillName(item.name));
+        const missingRequirement = item.requirementType === 'required'
+          ? `${report.targetJob} 공고의 필수 기술로 ${item.name} 역량을 요구합니다.`
+          : item.requirementType === 'preferred'
+            ? `${report.targetJob} 공고의 우대 기술로 ${item.name} 역량을 제시하고 있습니다.`
+            : `${report.targetJob} 공고에서 ${item.name} 역량을 요구합니다.`;
 
         return {
           name: item.name,
           statusLabel: item.statusLabel,
-          jdRequirementLabel: isMissing || isDirectMatched ? 'JD 요구사항' : 'JD 연관성',
+          jdRequirementLabel: isMissing
+            ? item.requirementType === 'required'
+              ? 'JD 필수 요구사항'
+              : item.requirementType === 'preferred'
+                ? 'JD 우대 요구사항'
+                : 'JD 요구사항'
+            : isDirectMatched
+              ? 'JD 요구사항'
+              : 'JD 연관성',
           jdRequirement: isMissing
-            ? `${report.targetJob} 공고에서 ${item.name} 역량을 요구합니다.`
+            ? missingRequirement
             : isDirectMatched
               ? `해당 공고에서 ${item.name} 경험을 요구합니다.\nJD 요구사항과 직접 연결되는 보유 기술입니다.`
               : `이 항목은 이력서에서 확인된 보유 역량입니다.\n다만 해당 채용공고의 핵심 요구 기술과 직접적인 연관성은 낮습니다.`,
