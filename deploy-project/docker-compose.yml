@@ -36,7 +36,7 @@ services:
       LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1/chat/completions}
       KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:-}
-      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://localhost/oauth/kakao/callback}
+      KAKAO_REDIRECT_URI: ${KAKAO_REDIRECT_URI:-http://54.116.239.232/oauth/kakao/callback}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
       JAVA_OPTS: ${JAVA_OPTS:--XX:MaxRAMPercentage=75.0}
       TZ: ${TZ:-Asia/Seoul}

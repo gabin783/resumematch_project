@@ -5,7 +5,7 @@ import { API_BASE_URL } from '../config/api';
 import './LoginPage.css';
 
 const KAKAO_CLIENT_ID = import.meta.env.VITE_KAKAO_CLIENT_ID || '';
-const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://localhost:5173/oauth/kakao/callback';
+const REDIRECT_URI = import.meta.env.VITE_KAKAO_REDIRECT_URI || 'http://54.116.239.232/oauth/kakao/callback';
 
 const LoginPage = () => {
   const navigate = useNavigate();

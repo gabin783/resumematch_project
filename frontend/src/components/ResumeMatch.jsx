@@ -37,7 +37,6 @@ const demoResumeSamples = [
     title: '이력서',
     description: '프론트엔드와 백엔드 경험이 모두 포함된 이력서입니다.',
     pdf: '/sample_resume/fullstack_resume_sample.pdf',
-    docx: '/sample_resume/fullstack_resume_sample.docx',
   }
 ];
 
@@ -534,14 +533,12 @@ const ResumeMatch = () => {
                 <a className="rm-demo-pdf" href={sample.pdf} download>
                   {sample.title} 샘플 PDF
                 </a>
-                {sample.docx ? (
-                  <a className="rm-demo-docx" href={sample.docx} download>
-                    DOCX
-                  </a>
-                ) : null}
               </div>
             ))}
           </div>
+          <p className="rm-demo-file-guide">
+            샘플 PDF 이력서를 다운로드해 업로드해 주세요.
+          </p>
 
           <div className="rm-demo-url-row">
             <span>채용공고 URL</span>
@@ -570,7 +567,6 @@ const ResumeMatch = () => {
             <input
               type="file"
               onChange={handleFileUpload}
-              accept=".pdf,.docx"
               disabled={isParsing}
             />
             <span className="rm-upload-icon" aria-hidden="true">↑</span>
