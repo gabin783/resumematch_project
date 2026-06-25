@@ -51,11 +51,9 @@ const LoginPage = () => {
           카카오로 계속하기
         </button>
 
-        <button type="button" className="kakao-login-button" onClick={handleDemoLogin}>
-          시연용 계정으로 체험하기
+        <button type="button" className="guest-login-button" onClick={handleDemoLogin}>
+          게스트 로그인
         </button>
-
-        <p className="login-mvp-note">현재 MVP에서는 카카오 로그인만 지원합니다.</p>
       </section>
     </main>
   );
